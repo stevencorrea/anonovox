@@ -6,7 +6,13 @@ To install dependencies:
 bun install
 ```
 
-To run:
+To run in dev mode with live reloads:
+
+```bash
+bun --hot index.ts
+```
+
+To run in production mode:
 
 ```bash
 bun run index.ts

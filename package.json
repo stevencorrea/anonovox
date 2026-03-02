@@ -8,5 +8,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@better-auth/infra": "^0.1.8",
+    "better-auth": "^1.5.1"
   }
 }
