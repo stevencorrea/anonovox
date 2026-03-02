@@ -1,4 +1,4 @@
-FROM oven/bun:1.1.34-alpine
+FROM oven/bun:1.3.10-alpine
 
 WORKDIR /app
 
@@ -10,4 +10,4 @@ COPY . .
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["bun", "index.ts"]
+ENTRYPOINT ["bun", "index.ts", "--production", "--no-env-file"]
