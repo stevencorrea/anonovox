@@ -9,6 +9,15 @@ const server = Bun.serve({
     "/": homePage,
     "/signin": signinPage,
     "/feedback": feedbackPage,
+    "/healthz": {
+      // Simple health check endpoint for load balancers / k8s readiness probes.
+      GET: () => {
+        return Response.json(
+          { ok: true, uptime_seconds: Math.floor(process.uptime()) },
+          { status: 200 },
+        );
+      },
+    },
     "/api/feedback": {
       // Our feedback endpoint taskes a POST behind a feature flag.
       // When production is enabled, we require a session to be present,
