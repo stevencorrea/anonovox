@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: anonovox
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d anonovox"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      # Keep the container's node_modules separate from the host's so
+      # platform-specific binaries (e.g. on macOS) don't bleed in.
+      - /app/node_modules
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/anonovox
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      BETTER_AUTH_API_KEY: ${BETTER_AUTH_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Override the production entrypoint for hot-reload in development.
+    entrypoint: ["bun", "--hot", "index.ts"]
+
+volumes:
+  postgres_data:

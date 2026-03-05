@@ -2,6 +2,9 @@ import homePage from "./index.html";
 import feedbackPage from "./feedback.html";
 import signinPage from "./signin.html";
 import { auth } from "./auth";
+import { runMigrations } from "./migrate";
+
+await runMigrations();
 
 const server = Bun.serve({
   port: 3000,
@@ -33,8 +36,20 @@ const server = Bun.serve({
           );
         }
 
-        // TODO: persist feedback in postgres db
-        console.log("Feedback received:", feedback);
+        const session = await auth.api.getSession({ headers: req.headers });
+        const userId = session?.user?.id ?? null;
+        const userEmail = session?.user?.email ?? null;
+        const orgDomain = userEmail ? userEmail.split("@")[1] : null;
+        const ipAddress =
+          req.headers.get("x-forwarded-for") ??
+          req.headers.get("cf-connecting-ip") ??
+          null;
+        const userAgent = req.headers.get("user-agent") ?? null;
+
+        await Bun.sql`
+          INSERT INTO feedback (content, user_id, user_email, org_domain, ip_address, user_agent)
+          VALUES (${feedback}, ${userId}, ${userEmail}, ${orgDomain}, ${ipAddress}, ${userAgent})
+        `;
 
         return Response.json({ ok: true }, { status: 201 });
       },

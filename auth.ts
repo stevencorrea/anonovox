@@ -1,10 +1,12 @@
 import { betterAuth } from "better-auth";
-import { Database } from "bun:sqlite";
+import { Pool } from "pg";
 import { dash } from "@better-auth/infra";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
-  database: new Database("database.sqlite"),
+  database: new Pool({
+    connectionString: process.env.DATABASE_URL,
+  }),
   emailAndPassword: {
     enabled: true,
   },
