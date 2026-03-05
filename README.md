@@ -82,7 +82,3 @@ docker build --no-cache -t anonovox:latest .
 ```
 
 - On macOS, if file mounts behave unexpectedly with file watchers, prefer running Bun directly on the host for development (`bun --hot index.ts`) and use Docker for production testing.
-
----
-
-If you'd like, I can add a sample `docker-compose.yml` or include a development-friendly Dockerfile variant — tell me which you prefer.
