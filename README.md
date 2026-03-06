@@ -28,7 +28,25 @@ docker compose up
 
 This boots a Postgres 17 container and the app container, wired together. The app waits for Postgres to be healthy before starting. **All database tables — including Better Auth's auth tables — are created automatically on first startup** via `migrate.ts`, so there is no separate migration step.
 
-The app is available at <http://localhost:3000> with hot reload enabled.
+The app is available at http://localhost:3000 with hot reload enabled.
+
+Accessing /feedback
+- The feedback page (GET /feedback) is publicly accessible — anyone can view the submission form without signing in.
+- By default, submitting feedback (POST /api/feedback) requires a valid authenticated session. To allow anonymous submissions (so anyone can POST feedback without logging in), start the server with the environment variable `DISABLE_AUTH=true`. When auth is disabled the server will record submissions but store `user_id` and `user_email` as `NULL`.
+
+Examples:
+- Development (hot reload):
+```sh
+DISABLE_AUTH=true bun --hot index.ts
+```
+
+- Docker (run image and allow anonymous submissions):
+```sh
+docker run --rm -e DISABLE_AUTH=true -p 3000:3000 anonovox:latest
+```
+
+Security note
+- `DISABLE_AUTH=true` is intended for local testing only. Do not enable anonymous submissions in production unless you intentionally accept unauthenticated feedback and the associated risks (spam, abuse, lack of accountability).
 
 ### 3. Stop and clean up
 

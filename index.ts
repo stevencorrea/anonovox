@@ -36,7 +36,11 @@ const server = Bun.serve({
           );
         }
 
-        const session = await auth.api.getSession({ headers: req.headers });
+        const disableAuth = process.env.DISABLE_AUTH === "true";
+        // When DISABLE_AUTH=true we skip fetching the session so anyone can submit feedback.
+        const session = disableAuth
+          ? null
+          : await auth.api.getSession({ headers: req.headers });
         const userId = session?.user?.id ?? null;
         const userEmail = session?.user?.email ?? null;
         const orgDomain = userEmail ? userEmail.split("@")[1] : null;
@@ -56,6 +60,12 @@ const server = Bun.serve({
     },
   },
   fetch(req) {
+    // Allow unauthenticated access to the feedback page (GET /feedback) by serving
+    // the feedback HTML directly. All other requests are delegated to the auth handler.
+    const url = new URL(req.url);
+    if (req.method === "GET" && url.pathname === "/feedback") {
+      return feedbackPage;
+    }
     return auth.handler(req);
   },
   // enable hot reload and console log output to browser in development mode
