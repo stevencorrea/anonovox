@@ -1,12 +1,19 @@
 /**
  * Runs all database migrations on startup.
  *
- * Better Auth tables (user, session, account, verification) are created here
- * so the app is fully self-contained — no separate CLI migration step is needed.
- * All statements use CREATE TABLE / INDEX IF NOT EXISTS and are safe to re-run.
+ * Schema layout:
+ *   reporting.*  – safe for dashboards and reporting jobs (no PII)
+ *   private.*    – restricted; contains identity data linked to responses
+ *   public.*     – Better Auth tables (user, session, account, verification)
+ *
+ * The `reporter` Postgres role is granted access only to the `reporting`
+ * schema. Any DB credential used for dashboards/reporting jobs should be
+ * assigned that role so it cannot reach `private.*` even if it tries.
+ *
+ * All statements are idempotent and safe to re-run on every startup.
  */
 export async function runMigrations() {
-  // ── Better Auth core tables ──────────────────────────────────────────────
+  // ── Better Auth core tables (public schema) ───────────────────────────────
 
   await Bun.sql`
     CREATE TABLE IF NOT EXISTS "user" (
@@ -74,20 +81,63 @@ export async function runMigrations() {
     CREATE INDEX IF NOT EXISTS "verification_identifier_idx" ON "verification" ("identifier")
   `;
 
-  // ── App tables ───────────────────────────────────────────────────────────
+  // ── Schemas ───────────────────────────────────────────────────────────────
+
+  await Bun.sql`CREATE SCHEMA IF NOT EXISTS reporting`;
+  await Bun.sql`CREATE SCHEMA IF NOT EXISTS private`;
+
+  // ── reporting.feedback_responses (no PII — safe for dashboards) ──────────
 
   await Bun.sql`
-    CREATE TABLE IF NOT EXISTS feedback (
+    CREATE TABLE IF NOT EXISTS reporting.feedback_responses (
+      id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      content    TEXT        NOT NULL,
+      org_domain TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // ── private.feedback_identity (PII — restricted) ─────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS private.feedback_identity (
       id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      content     TEXT        NOT NULL,
+      response_id TEXT        NOT NULL
+                              REFERENCES reporting.feedback_responses(id)
+                              ON DELETE CASCADE,
       user_id     TEXT,
       user_email  TEXT,
-      org_domain  TEXT,
       ip_address  TEXT,
       user_agent  TEXT,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS feedback_identity_response_id_idx
+      ON private.feedback_identity (response_id)
+  `;
+
+  // ── reporter role ─────────────────────────────────────────────────────────
+  // Create the role if it doesn't exist, then scope its access to reporting.* only.
+
+  await Bun.sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'reporter') THEN
+        CREATE ROLE reporter NOLOGIN;
+      END IF;
+    END
+    $$
+  `;
+
+  await Bun.sql`GRANT USAGE ON SCHEMA reporting TO reporter`;
+  await Bun.sql`GRANT SELECT ON reporting.feedback_responses TO reporter`;
+  await Bun.sql`REVOKE ALL ON SCHEMA private FROM reporter`;
+
+  // ── Remove legacy table (migrated to split schema above) ─────────────────
+
+  await Bun.sql`DROP TABLE IF EXISTS public.feedback`;
 
   console.log("Migrations complete.");
 }

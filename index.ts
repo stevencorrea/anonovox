@@ -50,9 +50,17 @@ const server = Bun.serve({
           null;
         const userAgent = req.headers.get("user-agent") ?? null;
 
+        // Insert response content into the reporting schema (no PII).
+        const [{ id: responseId }] = await Bun.sql`
+          INSERT INTO reporting.feedback_responses (content, org_domain)
+          VALUES (${feedback}, ${orgDomain})
+          RETURNING id
+        `;
+
+        // Insert identity data into the private schema (restricted).
         await Bun.sql`
-          INSERT INTO feedback (content, user_id, user_email, org_domain, ip_address, user_agent)
-          VALUES (${feedback}, ${userId}, ${userEmail}, ${orgDomain}, ${ipAddress}, ${userAgent})
+          INSERT INTO private.feedback_identity (response_id, user_id, user_email, ip_address, user_agent)
+          VALUES (${responseId}, ${userId}, ${userEmail}, ${ipAddress}, ${userAgent})
         `;
 
         return Response.json({ ok: true }, { status: 201 });
