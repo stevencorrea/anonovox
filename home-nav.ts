@@ -62,6 +62,4 @@ if (session?.user?.email) {
   });
 
   navAuth.replaceChildren(userSpan, feedbackLink, signOutLink);
-} else {
-  navAuth.innerHTML = `<a href="/signin" class="btn-outline">Sign in</a>`;
 }

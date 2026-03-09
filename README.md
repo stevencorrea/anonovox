@@ -64,8 +64,12 @@ index.ts            # Bun.serve() routes and server entry point
 auth.ts             # Better Auth configuration (PostgreSQL via pg Pool)
 auth-client.ts      # Browser-side auth helpers
 migrate.ts          # Creates all DB tables on startup (auth + split feedback schemas)
+package.json        # Dependencies and project metadata
+bun.lock            # Lockfile for reproducible builds
+tsconfig.json       # TypeScript configuration
 docker-compose.yml  # Local dev: postgres + app with hot reload
 Dockerfile          # Production image
+.dockerignore       # Build context filter (excludes .git, node_modules, docs)
 signin.html/ts      # Sign-in / sign-up page
 feedback.html       # Feedback submission form
 index.html          # Landing page
@@ -76,6 +80,11 @@ docs/               # Project proposal and presentation
 ## Database schema
 
 `migrate.ts` owns all table definitions and runs on every startup (`CREATE TABLE IF NOT EXISTS`; idempotent):
+
+**Schema separation:** Feedback is split across two schemas to enable safe reporting without exposing PII:
+- `reporting.*` contains anonymized feedback content (safe for dashboards and analytics)
+- `private.*` contains identity data linked to responses (restricted access)
+- The `reporter` role can only access `reporting.*`, ensuring dashboards cannot leak user identities
 
 **Better Auth tables** are managed by the app, no CLI needed:
 
