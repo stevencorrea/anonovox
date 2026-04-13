@@ -184,9 +184,14 @@
     textarea::placeholder { color: var(--muted); }
     textarea:focus { border-color: rgba(196, 150, 90, 0.4); }
 
-    button[type="submit"] {
+    .form-actions {
+      display: flex;
+      gap: 0.75rem;
       margin-top: 1.25rem;
-      width: 100%;
+    }
+
+    button[type="submit"] {
+      flex: 1;
       padding: 0.8rem 1rem;
       background: var(--accent);
       color: var(--bg);
@@ -203,6 +208,30 @@
     button[type="submit"]:disabled {
       background: rgba(196, 150, 90, 0.3);
       color: rgba(8, 8, 7, 0.5);
+      cursor: not-allowed;
+    }
+
+    .btn-review {
+      flex: 1;
+      padding: 0.8rem 1rem;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid rgba(196, 150, 90, 0.3);
+      font-family: var(--ff-body);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-review:hover:not(:disabled) {
+      background: rgba(196, 150, 90, 0.08);
+      border-color: var(--accent);
+    }
+    .btn-review:disabled {
+      color: rgba(196, 150, 90, 0.3);
+      border-color: rgba(196, 150, 90, 0.15);
       cursor: not-allowed;
     }
 
@@ -235,9 +264,16 @@
       justify-content: center;
     }
 
-    .suggestions-panel {
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
       width: 280px;
       flex-shrink: 0;
+    }
+
+    .suggestions-panel {
+      width: 100%;
       background: var(--surface);
       border: 1px solid var(--border);
       padding: 1.25rem;
@@ -331,12 +367,109 @@
       border-color: var(--muted);
     }
 
+    /* Review (LLM) suggestion styles */
+    .review-overall {
+      font-size: 0.78rem;
+      color: var(--text);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .review-card {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .review-card:last-child { border-bottom: none; }
+
+    .review-category {
+      display: inline-block;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.4rem;
+      margin-bottom: 0.4rem;
+      background: rgba(126, 200, 160, 0.15);
+      color: #7ec8a0;
+    }
+
+    .review-original {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+      text-decoration: line-through;
+      font-style: italic;
+    }
+
+    .review-suggestion {
+      font-size: 0.82rem;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .review-explanation {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+      line-height: 1.5;
+    }
+
+    .review-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .review-actions button {
+      font-family: var(--ff-body);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.65rem;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+    }
+
+    .btn-apply {
+      color: #7ec8a0;
+      border-color: rgba(126, 200, 160, 0.3);
+    }
+    .btn-apply:hover {
+      background: rgba(126, 200, 160, 0.08);
+      border-color: #7ec8a0;
+    }
+
+    .review-loading {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 1rem 0;
+    }
+
+    .review-spinner {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     @media (max-width: 800px) {
       .feedback-layout {
         flex-direction: column;
         align-items: center;
       }
-      .suggestions-panel {
+      .sidebar {
         width: 100%;
         max-width: 460px;
       }
@@ -376,22 +509,38 @@
           placeholder="Be honest. This is your chance."
           required
         ></textarea>
-        <button type="submit">Submit feedback</button>
+        <div class="form-actions">
+          <button type="button" id="review-btn" class="btn-review">Review draft</button>
+          <button type="submit">Submit feedback</button>
+        </div>
       </form>
 
       <div id="message" class="message"></div>
     </div>
 
-    <div id="suggestions-panel" class="suggestions-panel" style="display: none;">
-      <div class="suggestions-header">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 1L1 13h12L7 1z" stroke="currentColor" stroke-width="1" fill="none"/>
-          <line x1="7" y1="5.5" x2="7" y2="9" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-          <circle cx="7" cy="10.5" r="0.5" fill="currentColor"/>
-        </svg>
-        <span>Anonymity risks</span>
+    <div class="sidebar">
+      <div id="suggestions-panel" class="suggestions-panel" style="display: none;">
+        <div class="suggestions-header">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1L1 13h12L7 1z" stroke="currentColor" stroke-width="1" fill="none"/>
+            <line x1="7" y1="5.5" x2="7" y2="9" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+            <circle cx="7" cy="10.5" r="0.5" fill="currentColor"/>
+          </svg>
+          <span>Anonymity risks</span>
+        </div>
+        <div id="suggestions-list" class="suggestions-list"></div>
       </div>
-      <div id="suggestions-list" class="suggestions-list"></div>
+
+      <div id="review-panel" class="suggestions-panel" style="display: none;">
+        <div class="suggestions-header">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1v4M7 9v4M1 7h4M9 7h4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+            <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1" fill="none"/>
+          </svg>
+          <span>Draft review</span>
+        </div>
+        <div id="review-content"></div>
+      </div>
     </div>
   </div>
 

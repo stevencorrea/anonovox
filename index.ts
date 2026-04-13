@@ -4,6 +4,7 @@ import signinPage from "./signin.html";
 import { auth } from "./auth";
 import { runMigrations } from "./migrate";
 import { analyzeText } from "./analyze";
+import { reviewDraft } from "./review";
 
 await runMigrations();
 
@@ -20,6 +21,28 @@ const server = Bun.serve({
           { ok: true, uptime_seconds: Math.floor(process.uptime()) },
           { status: 200 },
         );
+      },
+    },
+    "/api/feedback/review": {
+      POST: async (req) => {
+        const body = (await req.json()) as { text?: string };
+        const text = body.text?.trim() ?? "";
+        if (!text) {
+          return Response.json(
+            { suggestions: [], overall: "", source: "llm" },
+            { status: 200 },
+          );
+        }
+        try {
+          const result = await reviewDraft(text);
+          return Response.json(result, { status: 200 });
+        } catch (err) {
+          console.error("Review draft error:", err);
+          return Response.json(
+            { error: "Failed to review draft" },
+            { status: 500 },
+          );
+        }
       },
     },
     "/api/feedback/analyze": {

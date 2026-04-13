@@ -1,11 +1,15 @@
 import type { AnalysisRisk } from "./analyze";
+import type { ReviewSuggestion } from "./review";
 
 const form = document.getElementById("feedback-form") as HTMLFormElement;
 const messageEl = document.getElementById("message") as HTMLDivElement;
 const submitBtn = form.querySelector("button[type='submit']") as HTMLButtonElement;
+const reviewBtn = document.getElementById("review-btn") as HTMLButtonElement;
 const textarea = document.getElementById("feedback") as HTMLTextAreaElement;
 const suggestionsPanel = document.getElementById("suggestions-panel") as HTMLDivElement;
 const suggestionsList = document.getElementById("suggestions-list") as HTMLDivElement;
+const reviewPanel = document.getElementById("review-panel") as HTMLDivElement;
+const reviewContent = document.getElementById("review-content") as HTMLDivElement;
 
 // --- Form submission (moved from inline script) ---
 
@@ -29,6 +33,7 @@ form.addEventListener("submit", async (e) => {
       form.reset();
       dismissed.clear();
       hideSuggestions();
+      hideReview();
       showMessage("Your feedback has been received. It will be included in the next batch.", "success");
     } else if (res.status === 401) {
       showMessage("You must be signed in to submit feedback.", "error");
@@ -187,5 +192,143 @@ function acceptSuggestion(risk: AnalysisRisk) {
   textarea.focus();
 
   // Re-trigger analysis since indices have shifted
+  triggerAnalysis();
+}
+
+// --- Review draft (LLM) ---
+
+function hideReview() {
+  reviewPanel.style.display = "none";
+  reviewContent.innerHTML = "";
+}
+
+reviewBtn.addEventListener("click", async () => {
+  const text = textarea.value.trim();
+  if (!text) return;
+
+  reviewBtn.disabled = true;
+  reviewBtn.textContent = "Reviewing…";
+
+  // Show loading state in panel
+  reviewPanel.style.display = "block";
+  reviewContent.innerHTML =
+    '<div class="review-loading"><div class="review-spinner"></div>Analysing your draft…</div>';
+
+  try {
+    const res = await fetch("/api/feedback/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!res.ok) {
+      reviewContent.innerHTML =
+        '<div class="review-loading">Failed to review draft. Please try again.</div>';
+      return;
+    }
+
+    const data = await res.json();
+    renderReview(data.suggestions, data.overall);
+  } catch {
+    reviewContent.innerHTML =
+      '<div class="review-loading">Could not reach the server. Please try again.</div>';
+  } finally {
+    reviewBtn.disabled = false;
+    reviewBtn.textContent = "Review draft";
+  }
+});
+
+function renderReview(suggestions: ReviewSuggestion[], overall: string) {
+  reviewContent.innerHTML = "";
+
+  if (overall) {
+    const overallEl = document.createElement("div");
+    overallEl.className = "review-overall";
+    overallEl.textContent = overall;
+    reviewContent.appendChild(overallEl);
+  }
+
+  if (suggestions.length === 0) {
+    if (!overall) {
+      hideReview();
+    }
+    return;
+  }
+
+  for (const s of suggestions) {
+    const card = document.createElement("div");
+    card.className = "review-card";
+
+    const category = document.createElement("div");
+    category.className = "review-category";
+    category.textContent = s.category;
+
+    const original = document.createElement("div");
+    original.className = "review-original";
+    original.textContent = s.original;
+
+    const suggestion = document.createElement("div");
+    suggestion.className = "review-suggestion";
+    suggestion.textContent = s.suggestion;
+
+    const explanation = document.createElement("div");
+    explanation.className = "review-explanation";
+    explanation.textContent = s.explanation;
+
+    const actions = document.createElement("div");
+    actions.className = "review-actions";
+
+    const applyBtn = document.createElement("button");
+    applyBtn.className = "btn-apply";
+    applyBtn.textContent = "Apply";
+    applyBtn.type = "button";
+    applyBtn.addEventListener("click", () => {
+      applyReviewSuggestion(s);
+      card.remove();
+      if (reviewContent.querySelectorAll(".review-card").length === 0) {
+        // Keep the overall summary visible
+        const overallEl = reviewContent.querySelector(".review-overall");
+        if (!overallEl) hideReview();
+      }
+    });
+
+    const skipBtn = document.createElement("button");
+    skipBtn.className = "btn-dismiss";
+    skipBtn.textContent = "Skip";
+    skipBtn.type = "button";
+    skipBtn.addEventListener("click", () => {
+      card.remove();
+      if (reviewContent.querySelectorAll(".review-card").length === 0) {
+        const overallEl = reviewContent.querySelector(".review-overall");
+        if (!overallEl) hideReview();
+      }
+    });
+
+    actions.appendChild(applyBtn);
+    actions.appendChild(skipBtn);
+
+    card.appendChild(category);
+    card.appendChild(original);
+    card.appendChild(suggestion);
+    card.appendChild(explanation);
+    card.appendChild(actions);
+
+    reviewContent.appendChild(card);
+  }
+}
+
+function applyReviewSuggestion(s: ReviewSuggestion) {
+  const currentText = textarea.value;
+  const idx = currentText.indexOf(s.original);
+  if (idx === -1) return;
+
+  textarea.value =
+    currentText.slice(0, idx) + s.suggestion + currentText.slice(idx + s.original.length);
+
+  const cursorPos = idx + s.suggestion.length;
+  textarea.setSelectionRange(cursorPos, cursorPos);
+  textarea.focus();
+
+  // Re-trigger anonymity analysis since text changed
   triggerAnalysis();
 }
