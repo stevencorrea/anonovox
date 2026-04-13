@@ -3,6 +3,7 @@ import feedbackPage from "./feedback.html";
 import signinPage from "./signin.html";
 import { auth } from "./auth";
 import { runMigrations } from "./migrate";
+import { analyzeText } from "./analyze";
 
 await runMigrations();
 
@@ -19,6 +20,14 @@ const server = Bun.serve({
           { ok: true, uptime_seconds: Math.floor(process.uptime()) },
           { status: 200 },
         );
+      },
+    },
+    "/api/feedback/analyze": {
+      POST: async (req) => {
+        const body = (await req.json()) as { text?: string };
+        const text = body.text?.trim() ?? "";
+        const result = analyzeText(text);
+        return Response.json(result, { status: 200 });
       },
     },
     "/api/feedback": {
