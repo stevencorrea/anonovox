@@ -3,7 +3,12 @@ import Anthropic from "@anthropic-ai/sdk";
 const client = new Anthropic();
 
 export interface ReviewSuggestion {
-  category: "tone" | "clarity" | "actionability" | "specificity" | "professionalism";
+  category:
+    | "tone"
+    | "clarity"
+    | "actionability"
+    | "specificity"
+    | "professionalism";
   original: string;
   suggestion: string;
   explanation: string;
@@ -39,7 +44,7 @@ Respond with ONLY valid JSON matching this exact schema:
 
 export async function reviewDraft(text: string): Promise<ReviewResult> {
   const message = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [
