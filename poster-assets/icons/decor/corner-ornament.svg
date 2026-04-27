@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Art-deco corner ornament">
+  <!-- Top-left bracket with deco diamond. Mirror with CSS transform for the other 3 corners. -->
+  <path d="M4 28 V 4 H 28"/>
+  <path d="M8 22 V 8 H 22" opacity="0.6"/>
+  <!-- Diamond accent -->
+  <path d="M14 14 L 18 10 L 22 14 L 18 18 Z"/>
+  <circle cx="18" cy="14" r="1.2" fill="currentColor" stroke="none"/>
+</svg>

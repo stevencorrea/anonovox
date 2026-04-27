@@ -1,0 +1,21 @@
+/* anonovox · DARK THEME · Midnight Sapphire (matches design-system.css dark-mode) */
+.theme-dark {
+  --bg:            #0f1318;
+  --surface:       #1a1f27;
+  --surface-alt:   #242c38;
+  --text-primary:  #e8e8ed;
+  --text-secondary:#b0b0b8;
+  --text-tertiary: #808088;
+  --accent:        #6b8ee4;
+  --accent-light:  #8ba5f0;
+  --accent-lighter:#a8bef8;
+  --accent-pale:   #1a2a4a;
+  --border:        rgba(107, 142, 228, 0.20);
+  --border-light:  rgba(107, 142, 228, 0.10);
+  --rule:          #6b8ee4;
+  --error:         #ff6b7a;
+  --success:       #7fd85f;
+  --warning:       #ffb84d;
+  --ff-display:    'Prata', 'Cormorant Garamond', serif;
+  --ff-body:       'Inter', 'Instrument Sans', sans-serif;
+}

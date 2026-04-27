@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 80" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Water cooler conversation: two people talking by a water cooler">
+  <!-- ─── LEFT PERSON · head + shoulders bust ─── -->
+  <circle cx="14" cy="18" r="6"/>
+  <path d="M2 68 C 2 48, 6 26, 14 26 C 22 26, 26 48, 26 68"/>
+
+  <!-- ─── SIMPLER WATER COOLER (between people) ─── -->
+  <!-- Compact inverted jug, clean silhouette -->
+  <path d="M40 14 H 56 C 58 18, 58 28, 56 32 H 40 C 38 28, 38 18, 40 14 Z"/>
+  <!-- Iconic 5-gal carrying ridge -->
+  <line x1="40" y1="22" x2="56" y2="22" opacity="0.55"/>
+  <!-- Short neck -->
+  <path d="M44 32 V 36 H 52 V 32"/>
+  <!-- Dispenser body — clean rectangle, gentle rounding -->
+  <rect x="40" y="36" width="16" height="30" rx="2"/>
+  <!-- Top seat ellipse for subtle 3D form -->
+  <ellipse cx="48" cy="36" rx="8" ry="1.2" opacity="0.4"/>
+  <!-- Single small tap -->
+  <path d="M48 50 V 54"/>
+
+  <!-- ─── RIGHT PERSON · mirror bust ─── -->
+  <circle cx="82" cy="18" r="6"/>
+  <path d="M70 68 C 70 48, 74 26, 82 26 C 90 26, 94 48, 94 68"/>
+
+  <!-- ─── CHATTER · dots in the air between heads ─── -->
+  <circle cx="30" cy="10" r="1.5" fill="currentColor" stroke="none" opacity="0.75"/>
+  <circle cx="34" cy="6"  r="1"   fill="currentColor" stroke="none" opacity="0.55"/>
+  <circle cx="62" cy="6"  r="1"   fill="currentColor" stroke="none" opacity="0.55"/>
+  <circle cx="66" cy="10" r="1.5" fill="currentColor" stroke="none" opacity="0.75"/>
+
+  <!-- ─── FLOOR LINE ─── -->
+  <line x1="2" y1="72" x2="94" y2="72" opacity="0.3"/>
+</svg>

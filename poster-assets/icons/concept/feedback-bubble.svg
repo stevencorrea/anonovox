@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Feedback bubble">
+  <!-- Rounded speech bubble with tail -->
+  <path d="M10 14 H 54 A 4 4 0 0 1 58 18 V 42 A 4 4 0 0 1 54 46 H 26 L 16 56 V 46 H 10 A 4 4 0 0 1 6 42 V 18 A 4 4 0 0 1 10 14 Z"/>
+  <!-- Three thought dots -->
+  <circle cx="20" cy="30" r="2" fill="currentColor" stroke="none"/>
+  <circle cx="32" cy="30" r="2" fill="currentColor" stroke="none"/>
+  <circle cx="44" cy="30" r="2" fill="currentColor" stroke="none"/>
+</svg>

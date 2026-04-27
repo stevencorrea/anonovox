@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>anonovox · poster theme + icon kit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prata&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./themes/light.css" />
+  <link rel="stylesheet" href="./themes/dark.css" />
+  <link rel="stylesheet" href="./themes/print.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--ff-body);
+      color: var(--text-primary);
+      background: var(--bg);
+      line-height: 1.6;
+      padding: 3rem 2rem 6rem;
+    }
+    .doc-header {
+      max-width: 1100px;
+      margin: 0 auto 4rem;
+      text-align: center;
+    }
+    .doc-header h1 {
+      font-family: var(--ff-display);
+      font-size: 3rem;
+      font-weight: 400;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+    .doc-header h1 b { color: var(--accent); font-weight: 400; }
+    .doc-header .eyebrow {
+      display: inline-flex; align-items: center; gap: 0.75rem;
+      font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--accent); font-weight: 600; margin-bottom: 1.25rem;
+    }
+    .doc-header .eyebrow::before {
+      content: ''; width: 1.5rem; height: 1px; background: var(--accent);
+    }
+    .doc-header p { color: var(--text-secondary); max-width: 640px; margin: 1rem auto 0; }
+
+    .theme-block {
+      max-width: 1100px; margin: 0 auto 3rem;
+      background: var(--bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+    }
+    .theme-block h2 {
+      font-family: var(--ff-display); font-size: 2rem; font-weight: 400;
+      margin-bottom: 0.25rem;
+    }
+    .theme-block .meta { font-size: 0.85rem; color: var(--text-tertiary); margin-bottom: 2rem; }
+
+    /* swatches */
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .swatch {
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .swatch .chip { height: 56px; }
+    .swatch .label {
+      padding: 0.5rem 0.65rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+    }
+    .swatch .name { color: var(--text-primary); font-weight: 500; }
+    .swatch .hex  { color: var(--text-tertiary); font-family: var(--ff-mono, monospace); margin-top: 0.15rem; }
+
+    /* icon grid */
+    .icon-section { margin-top: 2rem; }
+    .icon-section h3 {
+      font-family: var(--ff-display);
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+      margin-bottom: 0.25rem;
+    }
+    .icon-section .group-rule {
+      height: 1px; background: var(--border); margin: 0 0 1.25rem;
+    }
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+    }
+    .icon-cell {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 1rem 0.75rem 0.75rem;
+      text-align: center;
+      color: var(--accent);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .icon-cell:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .icon-cell svg {
+      width: 56px; height: 56px;
+      display: block; margin: 0 auto 0.75rem;
+    }
+    .icon-cell .cap {
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      font-family: var(--ff-body);
+    }
+
+    /* Decor grid: items have varying intrinsic sizes */
+    .decor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    .decor-cell {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 1.5rem;
+      color: var(--accent);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 120px;
+    }
+    .decor-cell svg { display: block; max-width: 100%; }
+    .decor-cell .cap {
+      font-size: 0.7rem; letter-spacing: 0.04em;
+      color: var(--text-secondary); margin-top: 0.75rem;
+    }
+
+    /* Type sample */
+    .type-block {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 1.5rem 1.75rem;
+      margin-top: 1.5rem;
+    }
+    .type-display { font-family: var(--ff-display); font-size: 2.4rem; color: var(--text-primary); line-height: 1.1; }
+    .type-display b { color: var(--accent); font-weight: 400; }
+    .type-body { color: var(--text-secondary); margin-top: 0.6rem; max-width: 56ch; }
+
+    /* nav strip at top */
+    .toc {
+      max-width: 1100px; margin: -2rem auto 3rem; text-align: center;
+      font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .toc a { color: var(--accent); text-decoration: none; margin: 0 0.6rem; }
+    .toc a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body class="theme-light">
+
+<header class="doc-header">
+  <div class="eyebrow">Capstone · Theme &amp; Icon Kit</div>
+  <h1>anono<b>vox</b> poster system</h1>
+  <p>Three themes (Light, Dark, Print) and 23 hand-built SVGs derived from the existing <code>design-system.css</code>. Every icon uses <code>currentColor</code>, so dropping it inside a themed container automatically picks up that theme's accent.</p>
+</header>
+
+<nav class="toc">
+  <a href="#light">Light</a> · <a href="#dark">Dark</a> · <a href="#print">Print (28″×22″)</a>
+</nav>
+
+<!-- ==================================================================== -->
+<!-- LIGHT THEME                                                           -->
+<!-- ==================================================================== -->
+<section id="light" class="theme-block theme-light">
+  <h2>Light · Royal Blue + Creme</h2>
+  <div class="meta">Default theme. Mirrors the live site at /index.html.</div>
+
+  <div class="swatches" id="sw-light"></div>
+
+  <div class="type-block">
+    <div class="type-display">Candor, <b>delivered</b>.</div>
+    <p class="type-body">Prata display over Inter body, with the eyebrow rule used throughout the live site. The accent royal blue carries metric numbers, eyebrows, and section anchors.</p>
+  </div>
+
+  <div class="icon-section">
+    <h3>Core product concepts</h3><div class="group-rule"></div>
+    <div class="icon-grid" data-section="concept"></div>
+  </div>
+  <div class="icon-section">
+    <h3>Tech stack</h3><div class="group-rule"></div>
+    <div class="icon-grid" data-section="stack"></div>
+  </div>
+  <div class="icon-section">
+    <h3>Decorative · structural</h3><div class="group-rule"></div>
+    <div class="decor-grid" data-section="decor"></div>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<!-- DARK THEME                                                            -->
+<!-- ==================================================================== -->
+<section id="dark" class="theme-block theme-dark">
+  <h2>Dark · Midnight Sapphire</h2>
+  <div class="meta">For dark slide backgrounds and projection environments.</div>
+
+  <div class="swatches" id="sw-dark"></div>
+
+  <div class="type-block">
+    <div class="type-display">Candor, <b>delivered</b>.</div>
+    <p class="type-body">In dark mode the accent shifts toward periwinkle (#6b8ee4) for legibility on a near-black canvas while preserving the royal-blue identity.</p>
+  </div>
+
+  <div class="icon-section">
+    <h3>Core product concepts</h3><div class="group-rule"></div>
+    <div class="icon-grid" data-section="concept"></div>
+  </div>
+  <div class="icon-section">
+    <h3>Tech stack</h3><div class="group-rule"></div>
+    <div class="icon-grid" data-section="stack"></div>
+  </div>
+  <div class="icon-section">
+    <h3>Decorative · structural</h3><div class="group-rule"></div>
+    <div class="decor-grid" data-section="decor"></div>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<!-- PRINT THEME                                                           -->
+<!-- ==================================================================== -->
+<section id="print" class="theme-block theme-print">
+  <h2>Print · Capstone Board (28″ × 22″)</h2>
+  <div class="meta">Deeper inks, warmer paper, no transparency on borders. CMYK-safe.</div>
+
+  <div class="swatches" id="sw-print"></div>
+
+  <div class="type-block">
+    <div class="type-display">Candor, <b>delivered</b>.</div>
+    <p class="type-body">Accent darkens to #1d2d63 so it prints as true royal blue, not washed periwinkle, on matte gallery stock. Body text becomes near-black for crisp 14pt captions on a 28″×22″ board.</p>
+  </div>
+
+  <div class="icon-section">
+    <h3>Core product concepts</h3><div class="group-rule"></div>
+    <div class="icon-grid" data-section="concept"></div>
+  </div>
+  <div class="icon-section">
+    <h3>Tech stack</h3><div class="group-rule"></div>
+    <div class="icon-grid" data-section="stack"></div>
+  </div>
+  <div class="icon-section">
+    <h3>Decorative · structural</h3><div class="group-rule"></div>
+    <div class="decor-grid" data-section="decor"></div>
+  </div>
+</section>
+
+<script>
+  // Theme swatch & icon data — fully inline so the file can be opened directly via file:// without a server.
+  const SWATCHES = {
+    light: [
+      ['Background', '#faf5f0'], ['Surface', '#ffffff'], ['Surface alt', '#f5ede6'],
+      ['Text primary', '#1a1410'], ['Text secondary', '#5a5450'], ['Text tertiary', '#8b8480'],
+      ['Accent', '#2c3e7a'], ['Accent light', '#4a5fa0'], ['Accent lighter', '#7a8fc4'],
+      ['Accent pale', '#e8eaf6'],
+    ],
+    dark: [
+      ['Background', '#0f1318'], ['Surface', '#1a1f27'], ['Surface alt', '#242c38'],
+      ['Text primary', '#e8e8ed'], ['Text secondary', '#b0b0b8'], ['Text tertiary', '#808088'],
+      ['Accent', '#6b8ee4'], ['Accent light', '#8ba5f0'], ['Accent lighter', '#a8bef8'],
+      ['Accent pale', '#1a2a4a'],
+    ],
+    print: [
+      ['Background', '#f7f0e6'], ['Surface', '#ffffff'], ['Surface alt', '#efe5d6'],
+      ['Text primary', '#0a0805'], ['Text secondary', '#3d3833'], ['Text tertiary', '#6b6560'],
+      ['Accent', '#1d2d63'], ['Accent light', '#34488f'], ['Accent lighter', '#6478b3'],
+      ['Accent pale', '#dde1f2'],
+    ],
+  };
+
+  // ICON_DATA: { group: { name: { label, svg } } } — every SVG inlined as a string.
+  const ICON_DATA = {
+  "concept": {
+    "mask-anonymity": {
+      "label": "Anonymity mask",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Anonymity mask\">\n  <!-- Domino mask, art-deco curve -->\n  <path d=\"M6 26 C 10 18, 22 16, 32 22 C 42 16, 54 18, 58 26 C 58 36, 48 44, 38 42 C 34 41, 32 38, 32 36 C 32 38, 30 41, 26 42 C 16 44, 6 36, 6 26 Z\"/>\n  <!-- Eye slits -->\n  <ellipse cx=\"20\" cy=\"29\" rx=\"4.5\" ry=\"2.5\" fill=\"currentColor\" stroke=\"none\"/>\n  <ellipse cx=\"44\" cy=\"29\" rx=\"4.5\" ry=\"2.5\" fill=\"currentColor\" stroke=\"none\"/>\n  <!-- Tie ribbon hint -->\n  <path d=\"M6 26 L 2 24 M 6 28 L 2 30\" opacity=\"0.6\"/>\n  <path d=\"M58 26 L 62 24 M 58 28 L 62 30\" opacity=\"0.6\"/>\n</svg>"
+    },
+    "voice-megaphone": {
+      "label": "Voice",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Voice / megaphone\">\n  <!-- Megaphone cone -->\n  <path d=\"M14 26 H 36 L 54 14 V 50 L 36 38 H 14 Z\"/>\n  <!-- Handle -->\n  <path d=\"M22 38 V 52 H 28 V 38\"/>\n  <!-- Sound waves -->\n  <path d=\"M58 22 Q 62 32 58 42\" opacity=\"0.7\"/>\n  <path d=\"M62 18 Q 68 32 62 46\" opacity=\"0.4\"/>\n</svg>"
+    },
+    "feedback-bubble": {
+      "label": "Feedback",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Feedback bubble\">\n  <!-- Rounded speech bubble with tail -->\n  <path d=\"M10 14 H 54 A 4 4 0 0 1 58 18 V 42 A 4 4 0 0 1 54 46 H 26 L 16 56 V 46 H 10 A 4 4 0 0 1 6 42 V 18 A 4 4 0 0 1 10 14 Z\"/>\n  <!-- Three thought dots -->\n  <circle cx=\"20\" cy=\"30\" r=\"2\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"32\" cy=\"30\" r=\"2\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"44\" cy=\"30\" r=\"2\" fill=\"currentColor\" stroke=\"none\"/>\n</svg>"
+    },
+    "shield-privacy": {
+      "label": "Privacy",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Privacy shield\">\n  <!-- Heraldic shield -->\n  <path d=\"M32 6 L 54 14 V 32 C 54 44 44 54 32 58 C 20 54 10 44 10 32 V 14 Z\"/>\n  <!-- Inner deco border -->\n  <path d=\"M32 12 L 49 18 V 32 C 49 41 41 49 32 52 C 23 49 15 41 15 32 V 18 Z\" opacity=\"0.3\"/>\n  <!-- Lock keyhole -->\n  <circle cx=\"32\" cy=\"30\" r=\"3.5\" fill=\"currentColor\" stroke=\"none\"/>\n  <path d=\"M32 33 L 32 40\" stroke-width=\"3\"/>\n</svg>"
+    },
+    "batch-delivery": {
+      "label": "Batch delivery",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Batch delivery\">\n  <!-- Three stacked envelopes (back, middle, front) -->\n  <rect x=\"10\" y=\"14\" width=\"44\" height=\"22\" rx=\"2\" opacity=\"0.35\"/>\n  <rect x=\"8\"  y=\"20\" width=\"44\" height=\"22\" rx=\"2\" opacity=\"0.6\"/>\n  <rect x=\"6\"  y=\"26\" width=\"44\" height=\"22\" rx=\"2\"/>\n  <!-- Envelope flap on front -->\n  <path d=\"M6 28 L 28 42 L 50 28\"/>\n  <!-- Send arrow -->\n  <path d=\"M52 52 L 60 52 M 56 48 L 60 52 L 56 56\" stroke-width=\"1.75\"/>\n</svg>"
+    },
+    "dashboard": {
+      "label": "Dashboard",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Executive dashboard\">\n  <!-- Frame -->\n  <rect x=\"6\" y=\"10\" width=\"52\" height=\"44\" rx=\"3\"/>\n  <!-- Top bar -->\n  <line x1=\"6\" y1=\"20\" x2=\"58\" y2=\"20\"/>\n  <circle cx=\"11\" cy=\"15\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"15\" cy=\"15\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"19\" cy=\"15\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/>\n  <!-- Bars -->\n  <rect x=\"12\" y=\"38\" width=\"5\" height=\"10\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.45\"/>\n  <rect x=\"20\" y=\"32\" width=\"5\" height=\"16\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.65\"/>\n  <rect x=\"28\" y=\"26\" width=\"5\" height=\"22\" fill=\"currentColor\" stroke=\"none\"/>\n  <!-- Trend line -->\n  <path d=\"M38 42 L 44 36 L 50 38 L 54 30\" stroke-width=\"1.75\"/>\n  <circle cx=\"54\" cy=\"30\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>\n</svg>"
+    },
+    "scrambler": {
+      "label": "AI scrambler",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"AI text scrambler\">\n  <!-- Input doc -->\n  <rect x=\"6\" y=\"14\" width=\"18\" height=\"24\" rx=\"2\"/>\n  <line x1=\"9\"  y1=\"20\" x2=\"21\" y2=\"20\" opacity=\"0.7\"/>\n  <line x1=\"9\"  y1=\"24\" x2=\"21\" y2=\"24\" opacity=\"0.7\"/>\n  <line x1=\"9\"  y1=\"28\" x2=\"18\" y2=\"28\" opacity=\"0.7\"/>\n  <!-- Scramble engine: 3 dots in a hex -->\n  <path d=\"M28 26 L 36 22 L 44 26 L 44 34 L 36 38 L 28 34 Z\"/>\n  <circle cx=\"33\" cy=\"29\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"38\" cy=\"29\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"36\" cy=\"33\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/>\n  <!-- Output doc with shuffled lines -->\n  <rect x=\"46\" y=\"22\" width=\"14\" height=\"20\" rx=\"2\"/>\n  <line x1=\"48\" y1=\"27\" x2=\"56\" y2=\"27\" opacity=\"0.55\"/>\n  <line x1=\"50\" y1=\"31\" x2=\"58\" y2=\"31\" opacity=\"0.55\"/>\n  <line x1=\"48\" y1=\"35\" x2=\"54\" y2=\"35\" opacity=\"0.55\"/>\n  <!-- Connectors -->\n  <path d=\"M24 26 L 28 26\" opacity=\"0.5\"/>\n  <path d=\"M44 30 L 46 30\" opacity=\"0.5\"/>\n  <!-- Sparkle -->\n  <path d=\"M52 14 L 53 17 L 56 18 L 53 19 L 52 22 L 51 19 L 48 18 L 51 17 Z\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.85\"/>\n</svg>"
+    },
+    "every-voice-heard": {
+      "label": "Every voice",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Every voice heard\">\n  <!-- Centered listening ear, surrounded by concentric arcs -->\n  <circle cx=\"32\" cy=\"32\" r=\"4\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"32\" cy=\"32\" r=\"9\"  opacity=\"0.85\"/>\n  <circle cx=\"32\" cy=\"32\" r=\"15\" opacity=\"0.55\"/>\n  <circle cx=\"32\" cy=\"32\" r=\"22\" opacity=\"0.3\"/>\n  <circle cx=\"32\" cy=\"32\" r=\"29\" opacity=\"0.15\"/>\n  <!-- Tick marks at cardinal points to imply many voices -->\n  <line x1=\"32\" y1=\"2\"  x2=\"32\" y2=\"6\"  opacity=\"0.4\"/>\n  <line x1=\"32\" y1=\"58\" x2=\"32\" y2=\"62\" opacity=\"0.4\"/>\n  <line x1=\"2\"  y1=\"32\" x2=\"6\"  y2=\"32\" opacity=\"0.4\"/>\n  <line x1=\"58\" y1=\"32\" x2=\"62\" y2=\"32\" opacity=\"0.4\"/>\n</svg>"
+    },
+    "water-cooler": {
+      "label": "Water cooler",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 112\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Office water cooler\">\n  <!-- \u2500\u2500\u2500 INVERTED 5-GALLON JUG \u2500\u2500\u2500 -->\n  <!-- Cap on top of bottle -->\n  <path d=\"M24 6 H 40 V 12 H 24 Z\"/>\n  <!-- Cap-to-jug rim -->\n  <line x1=\"20\" y1=\"12\" x2=\"44\" y2=\"12\"/>\n\n  <!-- Jug body: shoulders bulge slightly, taper to neck. Asymmetric mid-band placement\n       below ensures the silhouette reads as a 5-gal bottle, not a face frame. -->\n  <path d=\"M20 12 C 18 14, 16 20, 16 28 V 42 C 16 46, 20 50, 24 50 H 40 C 44 50, 48 46, 48 42 V 28 C 48 20, 46 14, 44 12\"/>\n\n  <!-- Iconic carrying handle ridge on the jug \u2014 the visual cue that says '5-gal water bottle' -->\n  <line x1=\"16\" y1=\"30\" x2=\"48\" y2=\"30\"/>\n  <line x1=\"16\" y1=\"36\" x2=\"48\" y2=\"36\" opacity=\"0.55\"/>\n\n  <!-- \u2500\u2500\u2500 NECK \u2500\u2500\u2500 -->\n  <path d=\"M24 50 V 56 H 40 V 50\"/>\n\n  <!-- \u2500\u2500\u2500 DISPENSER BODY \u2500\u2500\u2500 -->\n  <!-- Top seat (slightly wider than the jug neck) -->\n  <path d=\"M12 56 H 52\"/>\n  <!-- Body: clean straight-sided rectangle, gently rounded at the base -->\n  <path d=\"M14 56 V 100 C 14 103, 17 106, 20 106 H 44 C 47 106, 50 103, 50 100 V 56\"/>\n\n  <!-- Recessed control panel \u2014 the dispenser face -->\n  <rect x=\"22\" y=\"64\" width=\"20\" height=\"22\" rx=\"1.5\"/>\n\n  <!-- Two push-button nozzles inside the panel.\n       Vertical thin bars (not circles) read as 'spouts', not 'eyes'.\n       No horizontal element below = no mouth = no face. -->\n  <rect x=\"26\"   y=\"68\" width=\"3.5\" height=\"14\" rx=\"1.5\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.85\"/>\n  <rect x=\"34.5\" y=\"68\" width=\"3.5\" height=\"14\" rx=\"1.5\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.85\"/>\n\n  <!-- \u2500\u2500\u2500 BASE LINE \u2500\u2500\u2500 -->\n  <line x1=\"4\" y1=\"110\" x2=\"60\" y2=\"110\" opacity=\"0.3\"/>\n</svg>"
+    }
+  ,
+    "water-cooler-talk": {
+      "label": "Cooler conversation",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 96 80\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Water cooler conversation: two people talking by a water cooler\">\n  <!-- \u2500\u2500\u2500 LEFT PERSON \u00b7 head + shoulders bust \u2500\u2500\u2500 -->\n  <circle cx=\"14\" cy=\"18\" r=\"6\"/>\n  <path d=\"M2 68 C 2 48, 6 26, 14 26 C 22 26, 26 48, 26 68\"/>\n\n  <!-- \u2500\u2500\u2500 SIMPLER WATER COOLER (between people) \u2500\u2500\u2500 -->\n  <!-- Compact inverted jug, clean silhouette -->\n  <path d=\"M40 14 H 56 C 58 18, 58 28, 56 32 H 40 C 38 28, 38 18, 40 14 Z\"/>\n  <!-- Iconic 5-gal carrying ridge -->\n  <line x1=\"40\" y1=\"22\" x2=\"56\" y2=\"22\" opacity=\"0.55\"/>\n  <!-- Short neck -->\n  <path d=\"M44 32 V 36 H 52 V 32\"/>\n  <!-- Dispenser body \u2014 clean rectangle, gentle rounding -->\n  <rect x=\"40\" y=\"36\" width=\"16\" height=\"30\" rx=\"2\"/>\n  <!-- Top seat ellipse for subtle 3D form -->\n  <ellipse cx=\"48\" cy=\"36\" rx=\"8\" ry=\"1.2\" opacity=\"0.4\"/>\n  <!-- Single small tap -->\n  <path d=\"M48 50 V 54\"/>\n\n  <!-- \u2500\u2500\u2500 RIGHT PERSON \u00b7 mirror bust \u2500\u2500\u2500 -->\n  <circle cx=\"82\" cy=\"18\" r=\"6\"/>\n  <path d=\"M70 68 C 70 48, 74 26, 82 26 C 90 26, 94 48, 94 68\"/>\n\n  <!-- \u2500\u2500\u2500 CHATTER \u00b7 dots in the air between heads \u2500\u2500\u2500 -->\n  <circle cx=\"30\" cy=\"10\" r=\"1.5\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.75\"/>\n  <circle cx=\"34\" cy=\"6\"  r=\"1\"   fill=\"currentColor\" stroke=\"none\" opacity=\"0.55\"/>\n  <circle cx=\"62\" cy=\"6\"  r=\"1\"   fill=\"currentColor\" stroke=\"none\" opacity=\"0.55\"/>\n  <circle cx=\"66\" cy=\"10\" r=\"1.5\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.75\"/>\n\n  <!-- \u2500\u2500\u2500 FLOOR LINE \u2500\u2500\u2500 -->\n  <line x1=\"2\" y1=\"72\" x2=\"94\" y2=\"72\" opacity=\"0.3\"/>\n</svg>"
+    }
+  },
+  "stack": {
+    "bun": {
+      "label": "Bun",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Bun runtime\">\n  <!-- Stylized bun shape: top dome over base -->\n  <path d=\"M8 36 C 8 22, 20 12, 32 12 C 44 12, 56 22, 56 36 Z\"/>\n  <!-- Sesame seeds -->\n  <ellipse cx=\"22\" cy=\"26\" rx=\"1.6\" ry=\"2.4\" fill=\"currentColor\" stroke=\"none\" transform=\"rotate(-25 22 26)\"/>\n  <ellipse cx=\"32\" cy=\"22\" rx=\"1.6\" ry=\"2.4\" fill=\"currentColor\" stroke=\"none\"/>\n  <ellipse cx=\"42\" cy=\"26\" rx=\"1.6\" ry=\"2.4\" fill=\"currentColor\" stroke=\"none\" transform=\"rotate(25 42 26)\"/>\n  <!-- Base / plate line -->\n  <path d=\"M6 38 H 58\"/>\n  <path d=\"M6 42 H 58\" opacity=\"0.5\"/>\n  <!-- Speed mark -->\n  <path d=\"M14 50 L 22 50 M 26 54 L 34 54\" opacity=\"0.5\"/>\n</svg>"
+    },
+    "postgres": {
+      "label": "PostgreSQL",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"PostgreSQL database\">\n  <!-- Database cylinder -->\n  <ellipse cx=\"32\" cy=\"14\" rx=\"20\" ry=\"6\"/>\n  <path d=\"M12 14 V 50 C 12 53.3, 21 56, 32 56 C 43 56, 52 53.3, 52 50 V 14\"/>\n  <!-- Mid bands -->\n  <path d=\"M12 26 C 12 29.3, 21 32, 32 32 C 43 32, 52 29.3, 52 26\" opacity=\"0.6\"/>\n  <path d=\"M12 38 C 12 41.3, 21 44, 32 44 C 43 44, 52 41.3, 52 38\" opacity=\"0.4\"/>\n</svg>"
+    },
+    "docker": {
+      "label": "Docker",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Docker container\">\n  <!-- Stack of containers (3 cols \u00d7 2 rows) + 1 on top -->\n  <g fill=\"currentColor\" stroke=\"none\" opacity=\"0.85\">\n    <rect x=\"10\" y=\"34\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n    <rect x=\"20\" y=\"34\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n    <rect x=\"30\" y=\"34\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n    <rect x=\"40\" y=\"34\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n    <rect x=\"20\" y=\"24\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n    <rect x=\"30\" y=\"24\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n    <rect x=\"40\" y=\"24\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n    <rect x=\"30\" y=\"14\" width=\"8\" height=\"8\" rx=\"0.5\"/>\n  </g>\n  <!-- Whale/wave line -->\n  <path d=\"M4 46 C 14 50, 24 50, 34 46 C 44 42, 54 46, 60 50\" opacity=\"0.65\"/>\n  <!-- Steam puff -->\n  <circle cx=\"50\" cy=\"12\" r=\"2\" opacity=\"0.4\"/>\n  <circle cx=\"55\" cy=\"9\"  r=\"1.5\" opacity=\"0.3\"/>\n</svg>"
+    },
+    "typescript": {
+      "label": "TypeScript",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"TypeScript\">\n  <rect x=\"6\" y=\"6\" width=\"52\" height=\"52\" rx=\"4\"/>\n  <!-- T -->\n  <path d=\"M14 30 H 30 M 22 30 V 50\" stroke-width=\"2.5\"/>\n  <!-- S (simplified) -->\n  <path d=\"M50 32 C 50 30, 48 28, 44 28 C 40 28, 38 30, 38 32 C 38 36, 50 36, 50 42 C 50 45, 47 48, 43 48 C 39 48, 36 46, 36 44\" stroke-width=\"2.5\"/>\n</svg>"
+    },
+    "better-auth": {
+      "label": "Better Auth",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Better Auth\">\n  <!-- Key shape -->\n  <circle cx=\"20\" cy=\"32\" r=\"10\"/>\n  <circle cx=\"20\" cy=\"32\" r=\"3\" fill=\"currentColor\" stroke=\"none\"/>\n  <path d=\"M30 32 H 54\"/>\n  <path d=\"M44 32 V 38\"/>\n  <path d=\"M50 32 V 40\"/>\n  <!-- Verified check -->\n  <path d=\"M44 18 L 47 21 L 54 14\" stroke-width=\"2\" opacity=\"0.85\"/>\n</svg>"
+    },
+    "transformers": {
+      "label": "Transformers.js",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Transformers.js neural network\">\n  <!-- Three layers, fully-connected -->\n  <g opacity=\"0.55\">\n    <!-- input -> hidden -->\n    <line x1=\"14\" y1=\"16\" x2=\"32\" y2=\"22\"/>\n    <line x1=\"14\" y1=\"16\" x2=\"32\" y2=\"32\"/>\n    <line x1=\"14\" y1=\"16\" x2=\"32\" y2=\"42\"/>\n    <line x1=\"14\" y1=\"32\" x2=\"32\" y2=\"22\"/>\n    <line x1=\"14\" y1=\"32\" x2=\"32\" y2=\"32\"/>\n    <line x1=\"14\" y1=\"32\" x2=\"32\" y2=\"42\"/>\n    <line x1=\"14\" y1=\"48\" x2=\"32\" y2=\"22\"/>\n    <line x1=\"14\" y1=\"48\" x2=\"32\" y2=\"32\"/>\n    <line x1=\"14\" y1=\"48\" x2=\"32\" y2=\"42\"/>\n    <!-- hidden -> output -->\n    <line x1=\"32\" y1=\"22\" x2=\"50\" y2=\"24\"/>\n    <line x1=\"32\" y1=\"22\" x2=\"50\" y2=\"40\"/>\n    <line x1=\"32\" y1=\"32\" x2=\"50\" y2=\"24\"/>\n    <line x1=\"32\" y1=\"32\" x2=\"50\" y2=\"40\"/>\n    <line x1=\"32\" y1=\"42\" x2=\"50\" y2=\"24\"/>\n    <line x1=\"32\" y1=\"42\" x2=\"50\" y2=\"40\"/>\n  </g>\n  <!-- Nodes -->\n  <g fill=\"currentColor\" stroke=\"none\">\n    <circle cx=\"14\" cy=\"16\" r=\"2.5\"/>\n    <circle cx=\"14\" cy=\"32\" r=\"2.5\"/>\n    <circle cx=\"14\" cy=\"48\" r=\"2.5\"/>\n    <circle cx=\"32\" cy=\"22\" r=\"2.5\"/>\n    <circle cx=\"32\" cy=\"32\" r=\"2.5\"/>\n    <circle cx=\"32\" cy=\"42\" r=\"2.5\"/>\n    <circle cx=\"50\" cy=\"24\" r=\"2.5\"/>\n    <circle cx=\"50\" cy=\"40\" r=\"2.5\"/>\n  </g>\n</svg>"
+    },
+    "chartjs": {
+      "label": "Chart.js",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Chart.js\">\n  <!-- Axes -->\n  <path d=\"M10 8 V 54 H 58\"/>\n  <!-- Bars -->\n  <rect x=\"16\" y=\"38\" width=\"6\" height=\"14\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.5\"/>\n  <rect x=\"26\" y=\"30\" width=\"6\" height=\"22\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.7\"/>\n  <rect x=\"36\" y=\"22\" width=\"6\" height=\"30\" fill=\"currentColor\" stroke=\"none\"/>\n  <rect x=\"46\" y=\"14\" width=\"6\" height=\"38\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.85\"/>\n  <!-- Trend overlay -->\n  <path d=\"M19 36 L 29 28 L 39 20 L 49 12\" stroke-width=\"1.75\" opacity=\"0.65\"/>\n  <circle cx=\"19\" cy=\"36\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"29\" cy=\"28\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"39\" cy=\"20\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"49\" cy=\"12\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>\n</svg>"
+    },
+    "opentelemetry": {
+      "label": "OpenTelemetry",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"OpenTelemetry observability\">\n  <!-- Concentric radar arcs from a corner -->\n  <path d=\"M 8 56 A 12 12 0 0 1 20 44\"/>\n  <path d=\"M 8 56 A 24 24 0 0 1 32 32\" opacity=\"0.7\"/>\n  <path d=\"M 8 56 A 36 36 0 0 1 44 20\" opacity=\"0.45\"/>\n  <path d=\"M 8 56 A 48 48 0 0 1 56 8\"  opacity=\"0.25\"/>\n  <!-- Origin pulse + sweep -->\n  <circle cx=\"8\" cy=\"56\" r=\"2.5\" fill=\"currentColor\" stroke=\"none\"/>\n  <line x1=\"8\" y1=\"56\" x2=\"48\" y2=\"16\" opacity=\"0.6\"/>\n  <!-- Trace nodes along the sweep -->\n  <circle cx=\"22\" cy=\"42\" r=\"1.8\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"34\" cy=\"30\" r=\"1.8\" fill=\"currentColor\" stroke=\"none\"/>\n  <circle cx=\"46\" cy=\"18\" r=\"1.8\" fill=\"currentColor\" stroke=\"none\"/>\n</svg>"
+    }
+  ,
+    "slack": {
+      "label": "Slack",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Slack\">\n  <!-- Four rounded stadiums in pinwheel arrangement (Slack-gestalt without literal logo). -->\n  <!-- Top horizontal -->\n  <rect x=\"22\" y=\"6\"  width=\"22\" height=\"8\" rx=\"4\"/>\n  <!-- Right vertical -->\n  <rect x=\"50\" y=\"22\" width=\"8\"  height=\"22\" rx=\"4\"/>\n  <!-- Bottom horizontal -->\n  <rect x=\"20\" y=\"50\" width=\"22\" height=\"8\" rx=\"4\"/>\n  <!-- Left vertical -->\n  <rect x=\"6\"  y=\"20\" width=\"8\"  height=\"22\" rx=\"4\"/>\n  <!-- Tiny center accent dots -->\n  <circle cx=\"32\" cy=\"32\" r=\"1.4\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.5\"/>\n</svg>"
+    },
+    "teams": {
+      "label": "Microsoft Teams",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Microsoft Teams\">\n  <!-- Rounded square badge -->\n  <rect x=\"8\" y=\"8\" width=\"48\" height=\"48\" rx=\"8\"/>\n  <!-- Serif T centered -->\n  <path d=\"M16 22 H 48\" stroke-width=\"3.5\"/>\n  <path d=\"M32 22 V 50\" stroke-width=\"3.5\"/>\n  <!-- T foot serifs -->\n  <path d=\"M28 50 H 36\" stroke-width=\"3.5\"/>\n  <!-- Channel dot above the badge to hint at 'team chat' -->\n  <circle cx=\"32\" cy=\"3\" r=\"1.5\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.6\"/>\n</svg>"
+    },
+    "entra-id": {
+      "label": "Entra ID",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Microsoft Entra ID\">\n  <!-- Hexagonal badge \u2014 Microsoft Entra/Azure service gestalt -->\n  <path d=\"M32 4 L 55 17 V 47 L 32 60 L 9 47 V 17 Z\"/>\n  <!-- Inner hex hairline for depth -->\n  <path d=\"M32 10 L 50 20 V 44 L 32 54 L 14 44 V 20 Z\" opacity=\"0.3\"/>\n  <!-- Person silhouette inside (identity) -->\n  <circle cx=\"32\" cy=\"26\" r=\"5\"/>\n  <path d=\"M22 44 C 22 38, 26 35, 32 35 C 38 35, 42 38, 42 44\"/>\n  <!-- Verified sparkle in the upper-right corner -->\n  <path d=\"M48 14 L 49 17 L 52 18 L 49 19 L 48 22 L 47 19 L 44 18 L 47 17 Z\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.85\"/>\n</svg>"
+    }
+  },
+  "decor": {
+    "eyebrow-rule": {
+      "label": "Eyebrow rule",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" role=\"img\" aria-label=\"Eyebrow rule\">\n  <!-- 24\u00d71 rule, matches .eyebrow::before in design-system.css -->\n  <line x1=\"2\" y1=\"4\" x2=\"26\" y2=\"4\"/>\n</svg>"
+    },
+    "corner-ornament": {
+      "label": "Corner ornament",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Art-deco corner ornament\">\n  <!-- Top-left bracket with deco diamond. Mirror with CSS transform for the other 3 corners. -->\n  <path d=\"M4 28 V 4 H 28\"/>\n  <path d=\"M8 22 V 8 H 22\" opacity=\"0.6\"/>\n  <!-- Diamond accent -->\n  <path d=\"M14 14 L 18 10 L 22 14 L 18 18 Z\"/>\n  <circle cx=\"18\" cy=\"14\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/>\n</svg>"
+    },
+    "section-divider": {
+      "label": "Section divider",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Section divider with center diamond\">\n  <line x1=\"6\"   y1=\"8\" x2=\"148\" y2=\"8\" opacity=\"0.5\"/>\n  <line x1=\"172\" y1=\"8\" x2=\"314\" y2=\"8\" opacity=\"0.5\"/>\n  <!-- Center diamond -->\n  <path d=\"M160 2 L 166 8 L 160 14 L 154 8 Z\"/>\n  <circle cx=\"160\" cy=\"8\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"/>\n</svg>"
+    },
+    "step-frame": {
+      "label": "Step frame",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Step number frame\">\n  <!-- Outer thin ring -->\n  <circle cx=\"32\" cy=\"32\" r=\"28\"/>\n  <!-- Inner pale ring -->\n  <circle cx=\"32\" cy=\"32\" r=\"22\" opacity=\"0.35\"/>\n  <!-- Tick marks at the four cardinals -->\n  <line x1=\"32\" y1=\"2\"  x2=\"32\" y2=\"6\"/>\n  <line x1=\"32\" y1=\"58\" x2=\"32\" y2=\"62\"/>\n  <line x1=\"2\"  y1=\"32\" x2=\"6\"  y2=\"32\"/>\n  <line x1=\"58\" y1=\"32\" x2=\"62\" y2=\"32\"/>\n  <!-- Step number placeholder (replace via text element when used) -->\n  <text x=\"32\" y=\"40\" font-family=\"Prata, Cormorant Garamond, serif\" font-size=\"22\" text-anchor=\"middle\" fill=\"currentColor\" stroke=\"none\">01</text>\n</svg>"
+    },
+    "badge-seal": {
+      "label": "Badge / seal",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Verified seal badge\">\n  <!-- 12-point starburst seal -->\n  <g>\n    <circle cx=\"32\" cy=\"32\" r=\"22\"/>\n    <circle cx=\"32\" cy=\"32\" r=\"17\" opacity=\"0.4\"/>\n    <!-- Burst points -->\n    <g stroke-width=\"1\">\n      <line x1=\"32\" y1=\"4\"  x2=\"32\" y2=\"10\"/>\n      <line x1=\"32\" y1=\"54\" x2=\"32\" y2=\"60\"/>\n      <line x1=\"4\"  y1=\"32\" x2=\"10\" y2=\"32\"/>\n      <line x1=\"54\" y1=\"32\" x2=\"60\" y2=\"32\"/>\n      <line x1=\"12\" y1=\"12\" x2=\"16\" y2=\"16\"/>\n      <line x1=\"48\" y1=\"48\" x2=\"52\" y2=\"52\"/>\n      <line x1=\"52\" y1=\"12\" x2=\"48\" y2=\"16\"/>\n      <line x1=\"16\" y1=\"48\" x2=\"12\" y2=\"52\"/>\n      <line x1=\"32\" y1=\"2\"  x2=\"32\" y2=\"2\" opacity=\"0\"/>\n    </g>\n  </g>\n  <!-- Center glyph: V for Vox -->\n  <path d=\"M24 24 L 32 40 L 40 24\" stroke-width=\"1.75\"/>\n</svg>"
+    },
+    "wordmark-lockup": {
+      "label": "Wordmark lockup",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 64\" role=\"img\" aria-label=\"anonovox wordmark\">\n  <!-- Wordmark \u2014 uses the same Prata serif as nav .wordmark. The bold half is in accent. -->\n  <text x=\"0\" y=\"44\"\n        font-family=\"Prata, 'Cormorant Garamond', serif\"\n        font-size=\"36\"\n        letter-spacing=\"3\"\n        fill=\"currentColor\">anono<tspan font-weight=\"700\" opacity=\"0.95\">vox</tspan></text>\n  <!-- Eyebrow tag -->\n  <line x1=\"0\" y1=\"56\" x2=\"24\" y2=\"56\" stroke=\"currentColor\" stroke-width=\"1\"/>\n  <text x=\"32\" y=\"60\"\n        font-family=\"Inter, 'Instrument Sans', sans-serif\"\n        font-size=\"9\"\n        letter-spacing=\"2\"\n        fill=\"currentColor\"\n        opacity=\"0.7\">CANDOR, DELIVERED</text>\n</svg>"
+    }
+  }
+};
+
+  // Section order in each theme block
+  const SECTION_ORDER = ['concept', 'stack', 'decor'];
+
+  // Build swatch rows
+  function fillSwatches(id, list) {
+    const root = document.getElementById(id);
+    root.innerHTML = list.map(([name, hex]) =>
+      `<div class="swatch">
+         <div class="chip" style="background:${hex}"></div>
+         <div class="label">
+           <div class="name">${name}</div>
+           <div class="hex">${hex.toUpperCase()}</div>
+         </div>
+       </div>`).join("");
+  }
+  fillSwatches('sw-light', SWATCHES.light);
+  fillSwatches('sw-dark',  SWATCHES.dark);
+  fillSwatches('sw-print', SWATCHES.print);
+
+  // Render every icon group inside every theme block
+  function fillIcons(themeRoot) {
+    for (const group of SECTION_ORDER) {
+      const grid = themeRoot.querySelector(`[data-section="${group}"]`);
+      if (!grid) continue;
+      const cellClass = group === 'decor' ? 'decor-cell' : 'icon-cell';
+      const items = ICON_DATA[group];
+      grid.innerHTML = Object.entries(items).map(([key, { label, svg }]) =>
+        `<div class="${cellClass}">${svg}<div class="cap">${label}</div></div>`
+      ).join('');
+    }
+  }
+  document.querySelectorAll('.theme-block').forEach(fillIcons);
+</script>
+
+</body>
+</html>

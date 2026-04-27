@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Microsoft Entra ID">
+  <!-- Hexagonal badge — Microsoft Entra/Azure service gestalt -->
+  <path d="M32 4 L 55 17 V 47 L 32 60 L 9 47 V 17 Z"/>
+  <!-- Inner hex hairline for depth -->
+  <path d="M32 10 L 50 20 V 44 L 32 54 L 14 44 V 20 Z" opacity="0.3"/>
+  <!-- Person silhouette inside (identity) -->
+  <circle cx="32" cy="26" r="5"/>
+  <path d="M22 44 C 22 38, 26 35, 32 35 C 38 35, 42 38, 42 44"/>
+  <!-- Verified sparkle in the upper-right corner -->
+  <path d="M48 14 L 49 17 L 52 18 L 49 19 L 48 22 L 47 19 L 44 18 L 47 17 Z" fill="currentColor" stroke="none" opacity="0.85"/>
+</svg>

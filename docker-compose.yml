@@ -24,11 +24,11 @@ services:
       # Keep the container's node_modules separate from the host's so
       # platform-specific binaries (e.g. on macOS) don't bleed in.
       - /app/node_modules
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/anonovox
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
-      BETTER_AUTH_API_KEY: ${BETTER_AUTH_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy

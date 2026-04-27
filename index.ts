@@ -1,6 +1,7 @@
 import homePage from "./index.html";
 import feedbackPage from "./feedback.html";
 import signinPage from "./signin.html";
+import pricingPage from "./pricing.html";
 import { auth } from "./auth";
 import { runMigrations } from "./migrate";
 import { analyzeText } from "./analyze";
@@ -14,6 +15,7 @@ const server = Bun.serve({
     "/": homePage,
     "/signin": signinPage,
     "/feedback": feedbackPage,
+    "/pricing": pricingPage,
     "/healthz": {
       // Simple health check endpoint for load balancers / k8s readiness probes.
       GET: () => {

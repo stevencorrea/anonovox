@@ -18,18 +18,20 @@ const messages = [
   "There's a lot of nodding in meetings and venting in Slack",
 ];
 
-const layer = document.getElementById("voices-layer")!;
-messages.forEach((text) => {
-  const el = document.createElement("span");
-  el.className = "ghost-voice";
-  el.textContent = text;
-  const left = 3 + Math.random() * 82;
-  const top  = 30 + Math.random() * 55;
-  const dur  = 20 + Math.random() * 16;
-  const delay = -(Math.random() * dur);
-  el.style.cssText = `left:${left}%;top:${top}%;animation-duration:${dur}s;animation-delay:${delay}s;`;
-  layer.appendChild(el);
-});
+const layer = document.getElementById("voices-layer");
+if (layer) {
+  messages.forEach((text) => {
+    const el = document.createElement("span");
+    el.className = "ghost-voice";
+    el.textContent = text;
+    const left = 3 + Math.random() * 82;
+    const top  = 30 + Math.random() * 55;
+    const dur  = 20 + Math.random() * 16;
+    const delay = -(Math.random() * dur);
+    el.style.cssText = `left:${left}%;top:${top}%;animation-duration:${dur}s;animation-delay:${delay}s;`;
+    layer.appendChild(el);
+  });
+}
 
 const navAuth = document.getElementById("nav-auth")!;
 

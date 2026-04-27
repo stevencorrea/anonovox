@@ -3,13 +3,21 @@ import type { ReviewSuggestion } from "./review";
 
 const form = document.getElementById("feedback-form") as HTMLFormElement;
 const messageEl = document.getElementById("message") as HTMLDivElement;
-const submitBtn = form.querySelector("button[type='submit']") as HTMLButtonElement;
+const submitBtn = form.querySelector(
+  "button[type='submit']",
+) as HTMLButtonElement;
 const reviewBtn = document.getElementById("review-btn") as HTMLButtonElement;
 const textarea = document.getElementById("feedback") as HTMLTextAreaElement;
-const suggestionsPanel = document.getElementById("suggestions-panel") as HTMLDivElement;
-const suggestionsList = document.getElementById("suggestions-list") as HTMLDivElement;
+const suggestionsPanel = document.getElementById(
+  "suggestions-panel",
+) as HTMLDivElement;
+const suggestionsList = document.getElementById(
+  "suggestions-list",
+) as HTMLDivElement;
 const reviewPanel = document.getElementById("review-panel") as HTMLDivElement;
-const reviewContent = document.getElementById("review-content") as HTMLDivElement;
+const reviewContent = document.getElementById(
+  "review-content",
+) as HTMLDivElement;
 
 // --- Form submission (moved from inline script) ---
 
@@ -34,7 +42,10 @@ form.addEventListener("submit", async (e) => {
       dismissed.clear();
       hideSuggestions();
       hideReview();
-      showMessage("Your feedback has been received. It will be included in the next batch.", "success");
+      showMessage(
+        "Your feedback has been received. It will be included in the next batch.",
+        "success",
+      );
     } else if (res.status === 401) {
       showMessage("You must be signed in to submit feedback.", "error");
     } else {
@@ -212,7 +223,7 @@ reviewBtn.addEventListener("click", async () => {
   // Show loading state in panel
   reviewPanel.style.display = "block";
   reviewContent.innerHTML =
-    '<div class="review-loading"><div class="review-spinner"></div>Analysing your draft…</div>';
+    '<div class="review-loading"><div class="review-spinner"></div>Analyzing your draft…</div>';
 
   try {
     const res = await fetch("/api/feedback/review", {
@@ -323,7 +334,9 @@ function applyReviewSuggestion(s: ReviewSuggestion) {
   if (idx === -1) return;
 
   textarea.value =
-    currentText.slice(0, idx) + s.suggestion + currentText.slice(idx + s.original.length);
+    currentText.slice(0, idx) +
+    s.suggestion +
+    currentText.slice(idx + s.original.length);
 
   const cursorPos = idx + s.suggestion.length;
   textarea.setSelectionRange(cursorPos, cursorPos);

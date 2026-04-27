@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Every voice heard">
+  <!-- Centered listening ear, surrounded by concentric arcs -->
+  <circle cx="32" cy="32" r="4" fill="currentColor" stroke="none"/>
+  <circle cx="32" cy="32" r="9"  opacity="0.85"/>
+  <circle cx="32" cy="32" r="15" opacity="0.55"/>
+  <circle cx="32" cy="32" r="22" opacity="0.3"/>
+  <circle cx="32" cy="32" r="29" opacity="0.15"/>
+  <!-- Tick marks at cardinal points to imply many voices -->
+  <line x1="32" y1="2"  x2="32" y2="6"  opacity="0.4"/>
+  <line x1="32" y1="58" x2="32" y2="62" opacity="0.4"/>
+  <line x1="2"  y1="32" x2="6"  y2="32" opacity="0.4"/>
+  <line x1="58" y1="32" x2="62" y2="32" opacity="0.4"/>
+</svg>

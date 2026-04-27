@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 112" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Office water cooler">
+  <!-- ─── INVERTED 5-GALLON JUG ─── -->
+  <!-- Cap on top of bottle -->
+  <path d="M24 6 H 40 V 12 H 24 Z"/>
+  <!-- Cap-to-jug rim -->
+  <line x1="20" y1="12" x2="44" y2="12"/>
+
+  <!-- Jug body: shoulders bulge slightly, taper to neck. Asymmetric mid-band placement
+       below ensures the silhouette reads as a 5-gal bottle, not a face frame. -->
+  <path d="M20 12 C 18 14, 16 20, 16 28 V 42 C 16 46, 20 50, 24 50 H 40 C 44 50, 48 46, 48 42 V 28 C 48 20, 46 14, 44 12"/>
+
+  <!-- Iconic carrying handle ridge on the jug — the visual cue that says '5-gal water bottle' -->
+  <line x1="16" y1="30" x2="48" y2="30"/>
+  <line x1="16" y1="36" x2="48" y2="36" opacity="0.55"/>
+
+  <!-- ─── NECK ─── -->
+  <path d="M24 50 V 56 H 40 V 50"/>
+
+  <!-- ─── DISPENSER BODY ─── -->
+  <!-- Top seat (slightly wider than the jug neck) -->
+  <path d="M12 56 H 52"/>
+  <!-- Body: clean straight-sided rectangle, gently rounded at the base -->
+  <path d="M14 56 V 100 C 14 103, 17 106, 20 106 H 44 C 47 106, 50 103, 50 100 V 56"/>
+
+  <!-- Recessed control panel — the dispenser face -->
+  <rect x="22" y="64" width="20" height="22" rx="1.5"/>
+
+  <!-- Two push-button nozzles inside the panel.
+       Vertical thin bars (not circles) read as 'spouts', not 'eyes'.
+       No horizontal element below = no mouth = no face. -->
+  <rect x="26"   y="68" width="3.5" height="14" rx="1.5" fill="currentColor" stroke="none" opacity="0.85"/>
+  <rect x="34.5" y="68" width="3.5" height="14" rx="1.5" fill="currentColor" stroke="none" opacity="0.85"/>
+
+  <!-- ─── BASE LINE ─── -->
+  <line x1="4" y1="110" x2="60" y2="110" opacity="0.3"/>
+</svg>

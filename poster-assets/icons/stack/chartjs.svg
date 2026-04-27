@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Chart.js">
+  <!-- Axes -->
+  <path d="M10 8 V 54 H 58"/>
+  <!-- Bars -->
+  <rect x="16" y="38" width="6" height="14" fill="currentColor" stroke="none" opacity="0.5"/>
+  <rect x="26" y="30" width="6" height="22" fill="currentColor" stroke="none" opacity="0.7"/>
+  <rect x="36" y="22" width="6" height="30" fill="currentColor" stroke="none"/>
+  <rect x="46" y="14" width="6" height="38" fill="currentColor" stroke="none" opacity="0.85"/>
+  <!-- Trend overlay -->
+  <path d="M19 36 L 29 28 L 39 20 L 49 12" stroke-width="1.75" opacity="0.65"/>
+  <circle cx="19" cy="36" r="1.6" fill="currentColor" stroke="none"/>
+  <circle cx="29" cy="28" r="1.6" fill="currentColor" stroke="none"/>
+  <circle cx="39" cy="20" r="1.6" fill="currentColor" stroke="none"/>
+  <circle cx="49" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+</svg>

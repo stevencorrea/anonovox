@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Section divider with center diamond">
+  <line x1="6"   y1="8" x2="148" y2="8" opacity="0.5"/>
+  <line x1="172" y1="8" x2="314" y2="8" opacity="0.5"/>
+  <!-- Center diamond -->
+  <path d="M160 2 L 166 8 L 160 14 L 154 8 Z"/>
+  <circle cx="160" cy="8" r="1.2" fill="currentColor" stroke="none"/>
+</svg>

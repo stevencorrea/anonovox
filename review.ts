@@ -60,7 +60,8 @@ export async function reviewDraft(text: string): Promise<ReviewResult> {
     return { suggestions: [], overall: "Unable to review.", source: "llm" };
   }
 
-  const parsed = JSON.parse(content.text) as {
+  const raw = content.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  const parsed = JSON.parse(raw) as {
     suggestions: ReviewSuggestion[];
     overall: string;
   };

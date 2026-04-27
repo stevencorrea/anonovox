@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Microsoft Teams">
+  <!-- Rounded square badge -->
+  <rect x="8" y="8" width="48" height="48" rx="8"/>
+  <!-- Serif T centered -->
+  <path d="M16 22 H 48" stroke-width="3.5"/>
+  <path d="M32 22 V 50" stroke-width="3.5"/>
+  <!-- T foot serifs -->
+  <path d="M28 50 H 36" stroke-width="3.5"/>
+  <!-- Channel dot above the badge to hint at 'team chat' -->
+  <circle cx="32" cy="3" r="1.5" fill="currentColor" stroke="none" opacity="0.6"/>
+</svg>

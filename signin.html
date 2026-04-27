@@ -6,235 +6,258 @@
   <title>anonovox — sign in</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Prata:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./design-system.css" />
   <style>
-    :root {
-      --bg:      #080807;
-      --surface: #0e0e0c;
-      --text:    #ece6dc;
-      --muted:   #59534a;
-      --dim:     #1e1d1a;
-      --accent:  #c4965a;
-      --border:  rgba(236, 230, 220, 0.065);
-      --ff-display: 'Cormorant Garamond', Georgia, serif;
-      --ff-body:    'Instrument Sans', sans-serif;
-    }
-
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--ff-body);
-      font-weight: 300;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 2rem 1.5rem;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-
-    body::after {
-      content: '';
-      position: fixed;
-      inset: -50%;
-      width: 200%; height: 200%;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-size: 220px 220px;
-      opacity: 0.028;
-      pointer-events: none;
-      z-index: 9999;
-      animation: grain 10s steps(12) infinite;
-    }
-    @keyframes grain {
-      0%   { transform: translate(0, 0); }
-      10%  { transform: translate(-4%, -8%); }
-      20%  { transform: translate(-12%, 4%); }
-      30%  { transform: translate(6%, -20%); }
-      40%  { transform: translate(-4%, 18%); }
-      50%  { transform: translate(-12%, 8%); }
-      60%  { transform: translate(12%, 0%); }
-      70%  { transform: translate(0%, 12%); }
-      80%  { transform: translate(2%, 28%); }
-      90%  { transform: translate(-8%, 8%); }
-      100% { transform: translate(0, 0); }
     }
 
     .glow {
       position: fixed;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(196, 150, 90, 0.05) 0%, transparent 70%);
-      top: 50%; left: 50%;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(44, 62, 122, 0.08) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
+      z-index: 0;
     }
 
     .back {
       position: fixed;
-      top: 1.5rem; left: 2rem;
-      font-size: 0.7rem;
-      letter-spacing: 0.16em;
+      top: 1.5rem;
+      left: 2rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--text-tertiary);
       text-decoration: none;
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      transition: color 0.2s;
+      transition: color var(--transition-fast);
       z-index: 10;
+      font-weight: 500;
     }
-    .back:hover { color: var(--text); }
-    .back:hover svg { transform: translateX(-3px); }
-    .back svg { transition: transform 0.2s; }
+
+    .back:hover {
+      color: var(--accent);
+    }
+
+    .back svg {
+      transition: transform var(--transition-fast);
+    }
+
+    .back:hover svg {
+      transform: translateX(-3px);
+    }
 
     .card {
       position: relative;
       width: 100%;
       max-width: 420px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 2.75rem;
+      border: 1px solid var(--border-light);
+      padding: 3rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-md);
+      z-index: 2;
     }
+
     .card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
       background: linear-gradient(to right, transparent, var(--accent) 40%, var(--accent) 60%, transparent);
-      opacity: 0.6;
+      border-radius: 1rem 1rem 0 0;
     }
 
     .eyebrow {
-      font-size: 0.68rem;
-      letter-spacing: 0.22em;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--accent);
       margin-bottom: 1rem;
+      font-weight: 600;
     }
 
     h1 {
       font-family: var(--ff-display);
-      font-size: 1.9rem;
-      font-weight: 400;
-      font-style: italic;
-      line-height: 1.1;
-      color: var(--text);
+      font-size: 2rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text-primary);
       margin-bottom: 0.5rem;
-      transition: opacity 0.2s;
     }
 
     .subtitle {
-      font-size: 0.82rem;
-      color: var(--muted);
-      line-height: 1.7;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
       margin-bottom: 2rem;
     }
 
     .field {
-      margin-bottom: 1.1rem;
+      margin-bottom: 1.5rem;
     }
 
     label {
       display: block;
-      font-size: 0.7rem;
-      font-weight: 500;
-      letter-spacing: 0.14em;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 0.55rem;
+      color: var(--text-primary);
+      margin-bottom: 0.65rem;
     }
 
     input[type="email"],
     input[type="password"] {
       width: 100%;
-      padding: 0.8rem 1rem;
+      padding: 0.85rem 1rem;
       background: var(--bg);
       border: 1px solid var(--border);
-      color: var(--text);
+      color: var(--text-primary);
       font-family: var(--ff-body);
-      font-size: 0.9rem;
-      font-weight: 300;
+      font-size: 0.95rem;
+      font-weight: 400;
       outline: none;
-      transition: border-color 0.2s;
+      border-radius: 0.5rem;
+      transition: border-color var(--transition-fast);
       -webkit-font-smoothing: antialiased;
     }
-    input::placeholder { color: var(--muted); }
-    input:focus { border-color: rgba(196, 150, 90, 0.4); }
 
-    /* Domain hint on email input */
-    .domain-hint {
-      margin-top: 0.45rem;
-      font-size: 0.72rem;
-      color: var(--muted);
-      min-height: 1.1em;
+    input::placeholder {
+      color: var(--text-tertiary);
     }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-pale);
+    }
+
+    .domain-hint {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      min-height: 1.25em;
+    }
+
     .domain-hint span {
       color: var(--accent);
+      font-weight: 500;
     }
 
     button[type="submit"] {
-      margin-top: 0.4rem;
+      margin-top: 0.5rem;
       width: 100%;
-      padding: 0.8rem 1rem;
+      padding: 0.85rem 1rem;
       background: var(--accent);
-      color: var(--bg);
+      color: #ffffff;
       border: none;
       font-family: var(--ff-body);
-      font-size: 0.73rem;
-      font-weight: 500;
-      letter-spacing: 0.16em;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       cursor: pointer;
-      transition: background 0.2s;
+      border-radius: 0.5rem;
+      transition: all var(--transition-fast);
+      box-shadow: var(--shadow-md);
     }
-    button[type="submit"]:hover:not(:disabled) { background: #d4a868; }
+
+    button[type="submit"]:hover:not(:disabled) {
+      background: var(--accent-light);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    button[type="submit"]:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: var(--shadow-sm);
+    }
+
     button[type="submit"]:disabled {
-      background: rgba(196, 150, 90, 0.3);
-      color: rgba(8, 8, 7, 0.5);
+      background: var(--accent-pale);
+      color: var(--text-tertiary);
       cursor: not-allowed;
+      box-shadow: var(--shadow-sm);
     }
 
     .toggle-row {
-      margin-top: 1.5rem;
-      font-size: 0.78rem;
-      color: var(--muted);
+      margin-top: 1.75rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
       text-align: center;
     }
+
     .toggle-btn {
       background: none;
       border: none;
-      color: var(--text);
+      color: var(--accent);
       font-family: var(--ff-body);
       font-size: inherit;
-      font-weight: 400;
+      font-weight: 600;
       cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 3px;
+      text-decoration: none;
       padding: 0;
-      transition: color 0.2s;
+      transition: color var(--transition-fast);
     }
-    .toggle-btn:hover { color: var(--accent); }
+
+    .toggle-btn:hover {
+      color: var(--accent-light);
+      text-decoration: underline;
+    }
 
     .message {
-      margin-top: 1.25rem;
-      padding: 0.85rem 1rem;
-      font-size: 0.8rem;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      font-size: 0.9rem;
       line-height: 1.6;
       display: none;
       border: 1px solid;
+      border-radius: 0.5rem;
     }
+
     .message.success {
-      background: rgba(100, 180, 130, 0.06);
-      color: #7ec8a0;
-      border-color: rgba(100, 180, 130, 0.2);
+      background: rgba(45, 80, 22, 0.08);
+      color: var(--success);
+      border-color: var(--success);
     }
+
     .message.error {
-      background: rgba(200, 80, 80, 0.06);
-      color: #d07070;
-      border-color: rgba(200, 80, 80, 0.2);
+      background: rgba(196, 30, 58, 0.08);
+      color: var(--error);
+      border-color: var(--error);
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1.5rem 1rem;
+      }
+
+      .card {
+        padding: 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      .back {
+        font-size: 0.7rem;
+        left: 1rem;
+      }
     }
   </style>
 </head>
@@ -243,7 +266,7 @@
 
   <a href="/" class="back">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
     anonovox
   </a>
@@ -275,6 +298,7 @@
     </p>
   </div>
 
+  <script src="./theme-toggle.js"></script>
   <script type="module" src="./signin.ts"></script>
 </body>
 </html>

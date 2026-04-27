@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Docker container">
+  <!-- Stack of containers (3 cols × 2 rows) + 1 on top -->
+  <g fill="currentColor" stroke="none" opacity="0.85">
+    <rect x="10" y="34" width="8" height="8" rx="0.5"/>
+    <rect x="20" y="34" width="8" height="8" rx="0.5"/>
+    <rect x="30" y="34" width="8" height="8" rx="0.5"/>
+    <rect x="40" y="34" width="8" height="8" rx="0.5"/>
+    <rect x="20" y="24" width="8" height="8" rx="0.5"/>
+    <rect x="30" y="24" width="8" height="8" rx="0.5"/>
+    <rect x="40" y="24" width="8" height="8" rx="0.5"/>
+    <rect x="30" y="14" width="8" height="8" rx="0.5"/>
+  </g>
+  <!-- Whale/wave line -->
+  <path d="M4 46 C 14 50, 24 50, 34 46 C 44 42, 54 46, 60 50" opacity="0.65"/>
+  <!-- Steam puff -->
+  <circle cx="50" cy="12" r="2" opacity="0.4"/>
+  <circle cx="55" cy="9"  r="1.5" opacity="0.3"/>
+</svg>

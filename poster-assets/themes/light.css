@@ -1,0 +1,21 @@
+/* anonovox · LIGHT THEME · Royal Blue + Creme (matches design-system.css default) */
+:root, .theme-light {
+  --bg:            #faf5f0;
+  --surface:       #ffffff;
+  --surface-alt:   #f5ede6;
+  --text-primary:  #1a1410;
+  --text-secondary:#5a5450;
+  --text-tertiary: #8b8480;
+  --accent:        #2c3e7a;
+  --accent-light:  #4a5fa0;
+  --accent-lighter:#7a8fc4;
+  --accent-pale:   #e8eaf6;
+  --border:        rgba(44, 62, 122, 0.12);
+  --border-light:  rgba(44, 62, 122, 0.06);
+  --rule:          #2c3e7a;
+  --error:         #c41e3a;
+  --success:       #2d5016;
+  --warning:       #8b5a00;
+  --ff-display:    'Prata', 'Cormorant Garamond', serif;
+  --ff-body:       'Inter', 'Instrument Sans', sans-serif;
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="PostgreSQL database">
+  <!-- Database cylinder -->
+  <ellipse cx="32" cy="14" rx="20" ry="6"/>
+  <path d="M12 14 V 50 C 12 53.3, 21 56, 32 56 C 43 56, 52 53.3, 52 50 V 14"/>
+  <!-- Mid bands -->
+  <path d="M12 26 C 12 29.3, 21 32, 32 32 C 43 32, 52 29.3, 52 26" opacity="0.6"/>
+  <path d="M12 38 C 12 41.3, 21 44, 32 44 C 43 44, 52 41.3, 52 38" opacity="0.4"/>
+</svg>

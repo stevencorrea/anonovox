@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Privacy shield">
+  <!-- Heraldic shield -->
+  <path d="M32 6 L 54 14 V 32 C 54 44 44 54 32 58 C 20 54 10 44 10 32 V 14 Z"/>
+  <!-- Inner deco border -->
+  <path d="M32 12 L 49 18 V 32 C 49 41 41 49 32 52 C 23 49 15 41 15 32 V 18 Z" opacity="0.3"/>
+  <!-- Lock keyhole -->
+  <circle cx="32" cy="30" r="3.5" fill="currentColor" stroke="none"/>
+  <path d="M32 33 L 32 40" stroke-width="3"/>
+</svg>

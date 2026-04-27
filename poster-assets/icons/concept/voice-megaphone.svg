@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Voice / megaphone">
+  <!-- Megaphone cone -->
+  <path d="M14 26 H 36 L 54 14 V 50 L 36 38 H 14 Z"/>
+  <!-- Handle -->
+  <path d="M22 38 V 52 H 28 V 38"/>
+  <!-- Sound waves -->
+  <path d="M58 22 Q 62 32 58 42" opacity="0.7"/>
+  <path d="M62 18 Q 68 32 62 46" opacity="0.4"/>
+</svg>

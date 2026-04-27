@@ -1,0 +1,29 @@
+/* anonovox · PRINT THEME · Capstone Board 28" x 22"
+   Deeper inks, warmer paper, no transparency on borders.
+   Tuned to compensate for CMYK shift on matte gallery stock. */
+.theme-print {
+  --bg:            #f7f0e6;
+  --surface:       #ffffff;
+  --surface-alt:   #efe5d6;
+  --text-primary:  #0a0805;
+  --text-secondary:#3d3833;
+  --text-tertiary: #6b6560;
+  --accent:        #1d2d63;
+  --accent-light:  #34488f;
+  --accent-lighter:#6478b3;
+  --accent-pale:   #dde1f2;
+  --border:        #c9bfb0;
+  --border-light:  #e2d9c9;
+  --rule:          #1d2d63;
+  --error:         #9c1224;
+  --success:       #1f3a0e;
+  --warning:       #6b4500;
+  --ff-display:    'Prata', 'Cormorant Garamond', serif;
+  --ff-body:       'Inter', 'Instrument Sans', sans-serif;
+}
+
+/* Print-only adjustments: kill animation/grain, harden borders */
+@media print {
+  body::before { display: none !important; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

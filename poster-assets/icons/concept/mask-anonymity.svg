@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Anonymity mask">
+  <!-- Domino mask, art-deco curve -->
+  <path d="M6 26 C 10 18, 22 16, 32 22 C 42 16, 54 18, 58 26 C 58 36, 48 44, 38 42 C 34 41, 32 38, 32 36 C 32 38, 30 41, 26 42 C 16 44, 6 36, 6 26 Z"/>
+  <!-- Eye slits -->
+  <ellipse cx="20" cy="29" rx="4.5" ry="2.5" fill="currentColor" stroke="none"/>
+  <ellipse cx="44" cy="29" rx="4.5" ry="2.5" fill="currentColor" stroke="none"/>
+  <!-- Tie ribbon hint -->
+  <path d="M6 26 L 2 24 M 6 28 L 2 30" opacity="0.6"/>
+  <path d="M58 26 L 62 24 M 58 28 L 62 30" opacity="0.6"/>
+</svg>
