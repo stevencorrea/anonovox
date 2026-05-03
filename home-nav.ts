@@ -63,5 +63,24 @@ if (session?.user?.email) {
     window.location.reload();
   });
 
-  navAuth.replaceChildren(userSpan, feedbackLink, signOutLink);
+  let dashboardLink: HTMLAnchorElement | null = null;
+  try {
+    const meRes = await fetch("/api/org/me");
+    if (meRes.ok) {
+      const me = await meRes.json() as { orgId: string | null; role: string | null };
+      if (me.role === "owner" || me.role === "admin") {
+        dashboardLink = document.createElement("a");
+        dashboardLink.href = "/dashboard";
+        dashboardLink.className = "nav-link";
+        dashboardLink.textContent = "Dashboard";
+      }
+    }
+  } catch {}
+
+  navAuth.replaceChildren(
+    userSpan,
+    ...(dashboardLink ? [dashboardLink] : []),
+    feedbackLink,
+    signOutLink,
+  );
 }

@@ -497,6 +497,50 @@
                 border-color: var(--success);
             }
 
+            .suggestions-clean {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.8rem;
+                color: var(--accent);
+                padding: 0.5rem 0;
+            }
+
+            .review-apply-error {
+                font-size: 0.75rem;
+                color: var(--text-tertiary);
+                margin-top: 0.5rem;
+            }
+
+            .verify-banner {
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+                background: rgba(180, 120, 0, 0.08);
+                border: 1px solid rgba(180, 120, 0, 0.25);
+                color: #a07000;
+                border-radius: 0.5rem;
+                padding: 0.75rem 1.25rem;
+                font-size: 0.83rem;
+                margin-bottom: 1.5rem;
+                max-width: 900px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            [data-theme="dark"] .verify-banner {
+                background: rgba(200, 140, 0, 0.1);
+                border-color: rgba(200, 140, 0, 0.2);
+                color: #d4a017;
+            }
+
+            .verify-link {
+                color: inherit;
+                font-weight: 600;
+                text-decoration: underline;
+                margin-left: auto;
+            }
+
             .review-loading {
                 display: flex;
                 align-items: center;
@@ -580,6 +624,16 @@
             </svg>
             anonovox
         </a>
+
+        <div id="verify-banner" style="display:none" class="verify-banner">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="7" y1="4" x2="7" y2="7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <circle cx="7" cy="9.5" r="0.6" fill="currentColor"/>
+            </svg>
+            Your email is not verified.
+            <a href="#" id="resend-verify" class="verify-link">Resend verification email</a>
+        </div>
 
         <div class="feedback-layout">
             <div class="card">

@@ -135,9 +135,167 @@ export async function runMigrations() {
   await Bun.sql`GRANT SELECT ON reporting.feedback_responses TO reporter`;
   await Bun.sql`REVOKE ALL ON SCHEMA private FROM reporter`;
 
+  // ── Better Auth organization plugin tables ────────────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS "organization" (
+      "id"        TEXT        PRIMARY KEY,
+      "name"      TEXT        NOT NULL,
+      "slug"      TEXT        UNIQUE,
+      "logo"      TEXT,
+      "metadata"  TEXT,
+      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS "member" (
+      "id"             TEXT        PRIMARY KEY,
+      "organizationId" TEXT        NOT NULL REFERENCES "organization"("id") ON DELETE CASCADE,
+      "userId"         TEXT        NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+      "role"           TEXT        NOT NULL DEFAULT 'member',
+      "createdAt"      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  await Bun.sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS "member_org_user_idx" ON "member" ("organizationId", "userId")
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS "member_userId_idx" ON "member" ("userId")
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS "invitation" (
+      "id"             TEXT        PRIMARY KEY,
+      "organizationId" TEXT        NOT NULL REFERENCES "organization"("id") ON DELETE CASCADE,
+      "email"          TEXT        NOT NULL,
+      "role"           TEXT,
+      "status"         TEXT        NOT NULL DEFAULT 'pending',
+      "expiresAt"      TIMESTAMPTZ NOT NULL,
+      "inviterId"      TEXT        NOT NULL REFERENCES "user"("id") ON DELETE CASCADE
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS "invitation_org_idx" ON "invitation" ("organizationId")
+  `;
+
+  await Bun.sql`
+    ALTER TABLE "session" ADD COLUMN IF NOT EXISTS "activeOrganizationId" TEXT
+  `;
+
+  // ── Dashboard tables ──────────────────────────────────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.org_insights (
+      org_id       TEXT        PRIMARY KEY,
+      content      JSONB       NOT NULL,
+      generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.leadership_responses (
+      id           TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id       TEXT        NOT NULL,
+      content      TEXT        NOT NULL,
+      period_label TEXT,
+      posted_by    TEXT,
+      posted_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS leadership_responses_org_id_idx
+      ON reporting.leadership_responses (org_id)
+  `;
+
+  await Bun.sql`GRANT SELECT ON reporting.org_insights TO reporter`;
+  await Bun.sql`GRANT SELECT ON reporting.leadership_responses TO reporter`;
+
+  // ── Entra SSO: tenant ID on org + audit log ───────────────────────────────
+
+  await Bun.sql`
+    ALTER TABLE "organization" ADD COLUMN IF NOT EXISTS "entraTenantId" TEXT
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS private.sso_audit_log (
+      id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      event      TEXT        NOT NULL,
+      user_id    TEXT,
+      org_id     TEXT,
+      metadata   JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS sso_audit_log_user_id_idx ON private.sso_audit_log (user_id)
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS sso_audit_log_created_at_idx ON private.sso_audit_log (created_at DESC)
+  `;
+
+  // ── Email batch delivery tracking ─────────────────────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.batch_deliveries (
+      id              TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id          TEXT        NOT NULL,
+      recipient_count INTEGER     NOT NULL DEFAULT 0,
+      feedback_count  INTEGER     NOT NULL,
+      status          TEXT        NOT NULL DEFAULT 'sent',
+      error           TEXT,
+      sent_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS batch_deliveries_org_sent_idx
+      ON reporting.batch_deliveries (org_id, sent_at DESC)
+  `;
+
+  await Bun.sql`GRANT SELECT ON reporting.batch_deliveries TO reporter`;
+
   // ── Remove legacy table (migrated to split schema above) ─────────────────
 
   await Bun.sql`DROP TABLE IF EXISTS public.feedback`;
+
+  // ── Slack integration ─────────────────────────────────────────────────────
+
+  await Bun.sql`CREATE SCHEMA IF NOT EXISTS integration`;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS integration.slack_workspaces (
+      id                 TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id             TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
+      slack_workspace_id TEXT        NOT NULL UNIQUE,
+      team_name          TEXT,
+      access_token       TEXT        NOT NULL DEFAULT '',
+      installed_by       TEXT,
+      installed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    ALTER TABLE private.feedback_identity
+      ADD COLUMN IF NOT EXISTS submission_source TEXT DEFAULT 'web'
+  `;
+
+  // ── Teams integration ─────────────────────────────────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS integration.teams_tenants (
+      id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id     TEXT        NOT NULL UNIQUE REFERENCES "organization"(id) ON DELETE CASCADE,
+      tenant_id  TEXT        NOT NULL,
+      linked_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 
   console.log("Migrations complete.");
 }

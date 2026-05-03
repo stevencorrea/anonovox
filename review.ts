@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { AnalysisRisk } from "./analyze";
 
 const client = new Anthropic();
 
@@ -8,7 +9,8 @@ export interface ReviewSuggestion {
     | "clarity"
     | "actionability"
     | "specificity"
-    | "professionalism";
+    | "professionalism"
+    | "anonymization";
   original: string;
   suggestion: string;
   explanation: string;
@@ -28,12 +30,13 @@ Rules:
 - Keep suggestions concise and practical.
 - Return 1-4 suggestions, only where meaningful improvement is possible.
 - If the feedback is already well-written, return fewer or no suggestions.
+- Also check for implicit identity signals that heuristics may miss: unique project names, unusual role descriptions, rare events, or anything that could narrow down who wrote this even without explicit PII. Suggest neutral rewrites using the category "anonymization".
 
 Respond with ONLY valid JSON matching this exact schema:
 {
   "suggestions": [
     {
-      "category": "tone" | "clarity" | "actionability" | "specificity" | "professionalism",
+      "category": "tone" | "clarity" | "actionability" | "specificity" | "professionalism" | "anonymization",
       "original": "the phrase or sentence to improve",
       "suggestion": "the improved version",
       "explanation": "brief reason for the change"
@@ -42,7 +45,12 @@ Respond with ONLY valid JSON matching this exact schema:
   "overall": "one sentence summary of the feedback quality"
 }`;
 
-export async function reviewDraft(text: string): Promise<ReviewResult> {
+export async function reviewDraft(text: string, risks?: AnalysisRisk[]): Promise<ReviewResult> {
+  const risksContext = risks?.length
+    ? `\n\nAlready flagged by heuristics (don't repeat these): ${risks.map((r) => `"${r.matchedText}" (${r.type})`).join(", ")}. Focus on implicit risks the list above may miss.`
+    : "";
+  const userMessage = `Review this anonymous feedback draft:\n\n${text}${risksContext}`;
+
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
@@ -50,7 +58,7 @@ export async function reviewDraft(text: string): Promise<ReviewResult> {
     messages: [
       {
         role: "user",
-        content: `Review this anonymous feedback draft:\n\n${text}`,
+        content: userMessage,
       },
     ],
   });

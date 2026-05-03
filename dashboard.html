@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — anonovox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prata:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./design-system.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    .settings-shell {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 8rem 2rem 6rem;
+    }
+
+    .settings-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .settings-title {
+      font-family: var(--ff-display);
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── Cards ── */
+    .settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .card-header .card-title {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    /* ── Loading / states ── */
+    #dashboard-loading, #dashboard-error, #dashboard-access-denied {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      padding: 3rem 0;
+      text-align: center;
+    }
+
+    #dashboard-error { color: var(--error); }
+
+    #dashboard-content { display: none; }
+
+    /* ── Insights ── */
+    #insights-loading {
+      color: var(--text-tertiary);
+      font-size: 0.85rem;
+      padding: 1rem 0;
+    }
+
+    #insights-empty {
+      color: var(--text-tertiary);
+      font-size: 0.875rem;
+      padding: 0.5rem 0 1rem;
+    }
+
+    .insights-section-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin: 1.25rem 0 0.5rem;
+    }
+
+    /* Themes */
+    .themes-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .theme-chip {
+      display: inline-block;
+      padding: 0.25rem 0.7rem;
+      background: var(--accent-pale);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* Sentiment bar */
+    .sentiment-bar {
+      display: flex;
+      height: 10px;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 0.6rem;
+    }
+
+    .sentiment-seg { height: 100%; }
+    .sentiment-pos { background: #4caf50; }
+    .sentiment-neu { background: #9e9e9e; }
+    .sentiment-neg { background: #ef5350; }
+
+    .sentiment-legend {
+      display: flex;
+      gap: 1.25rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .sentiment-legend span { display: flex; align-items: center; gap: 0.35rem; }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .legend-pos { background: #4caf50; }
+    .legend-neu { background: #9e9e9e; }
+    .legend-neg { background: #ef5350; }
+
+    /* Key quotes */
+    .key-quote {
+      margin: 0 0 0.75rem;
+      padding: 0.6rem 1rem;
+      border-left: 3px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .key-quote:last-child { margin-bottom: 0; }
+
+    /* Overall summary */
+    #insights-summary {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.65;
+      margin-top: 0.25rem;
+    }
+
+    #insights-generated-at {
+      font-size: 0.72rem;
+      color: var(--text-tertiary);
+      margin-top: 1rem;
+    }
+
+    /* ── Feed ── */
+    #feed-count {
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+    }
+
+    .feed-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .feed-item:last-child { border-bottom: none; }
+
+    .feed-content {
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .feed-meta {
+      font-size: 0.72rem;
+      color: var(--text-tertiary);
+      margin-top: 0.35rem;
+    }
+
+    #feed-empty {
+      font-size: 0.875rem;
+      color: var(--text-tertiary);
+      padding: 1rem 0;
+    }
+
+    #load-more-btn {
+      display: none;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.6rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-family: var(--ff-body);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    #load-more-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Respond form ── */
+    .respond-field-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 0.4rem;
+    }
+
+    .respond-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: var(--ff-body);
+      outline: none;
+      resize: vertical;
+      transition: border-color var(--transition-fast);
+      box-sizing: border-box;
+    }
+
+    .respond-textarea:focus { border-color: var(--accent); }
+
+    .respond-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .respond-period-wrap { flex: 1; min-width: 160px; }
+
+    .respond-period-input {
+      width: 100%;
+      padding: 0.55rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: var(--ff-body);
+      outline: none;
+      transition: border-color var(--transition-fast);
+      box-sizing: border-box;
+    }
+
+    .respond-period-input:focus { border-color: var(--accent); }
+
+    /* ── Posted responses ── */
+    #responses-section { margin-top: 1.5rem; }
+
+    .response-item {
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .response-item:last-child { border-bottom: none; }
+
+    .response-period {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+    }
+
+    .response-content {
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .response-meta {
+      font-size: 0.72rem;
+      color: var(--text-tertiary);
+      margin-top: 0.3rem;
+    }
+
+    /* ── Inline messages ── */
+    .inline-msg {
+      font-size: 0.8rem;
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.4rem;
+      display: none;
+    }
+
+    .inline-msg.success {
+      background: rgba(45, 80, 22, 0.08);
+      color: var(--success);
+      border: 1px solid rgba(45, 80, 22, 0.15);
+    }
+
+    .inline-msg.error {
+      background: rgba(180, 40, 20, 0.07);
+      color: #c0392b;
+      border: 1px solid rgba(180, 40, 20, 0.15);
+    }
+
+    /* ── Delivery history ── */
+    .delivery-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.875rem;
+    }
+
+    .delivery-row:last-child { border-bottom: none; }
+
+    .delivery-date {
+      flex: 1;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+    }
+
+    .delivery-count {
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+    }
+
+    .delivery-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .delivery-badge-sent {
+      background: rgba(45, 122, 74, 0.1);
+      color: #2d7a4a;
+      border: 1px solid rgba(45, 122, 74, 0.2);
+    }
+
+    .delivery-badge-failed {
+      background: rgba(196, 30, 58, 0.08);
+      color: #c41e3a;
+      border: 1px solid rgba(196, 30, 58, 0.15);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .settings-shell { padding: 6rem 1.25rem 4rem; }
+      .respond-row { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="wordmark">anono<b>vox</b></a>
+    <div class="nav-right">
+      <a href="/feedback" class="nav-link">Submit feedback</a>
+      <div style="display:flex;align-items:center;gap:1.5rem;">
+        <div class="theme-toggle">
+          <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
+          <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
+        </div>
+        <div id="nav-auth"><a href="/signin" class="btn-primary btn-small">Sign in</a></div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="settings-shell">
+    <div class="settings-eyebrow">Leadership</div>
+    <h1 class="settings-title">Dashboard</h1>
+
+    <!-- Loading state -->
+    <div id="dashboard-loading">Loading…</div>
+
+    <!-- Error state -->
+    <div id="dashboard-error" style="display:none"></div>
+
+    <!-- Access denied -->
+    <div id="dashboard-access-denied" style="display:none">
+      <p>You don't have access to the dashboard.</p>
+      <p style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-tertiary)">Dashboard access requires an admin or owner role in your organization.</p>
+    </div>
+
+    <!-- Main content -->
+    <div id="dashboard-content">
+
+      <!-- AI Insights card -->
+      <div class="settings-card">
+        <div class="card-header">
+          <div class="card-title">AI Insights</div>
+          <button id="refresh-insights-btn" class="btn-secondary btn-small">Refresh insights</button>
+        </div>
+        <div id="insights-loading">Generating insights…</div>
+        <div id="insights-empty" style="display:none">No feedback yet — insights will appear once responses come in.</div>
+        <div id="insights-content" style="display:none">
+          <div class="insights-section-label">Themes</div>
+          <div id="insights-themes" class="themes-row"></div>
+
+          <div class="insights-section-label">Sentiment</div>
+          <div id="insights-sentiment"></div>
+
+          <div class="insights-section-label">Key Quotes</div>
+          <div id="insights-quotes"></div>
+
+          <div class="insights-section-label">Summary</div>
+          <p id="insights-summary"></p>
+
+          <div id="insights-generated-at"></div>
+        </div>
+      </div>
+
+      <!-- Post Response card -->
+      <div class="settings-card">
+        <div class="card-title">Post Leadership Response</div>
+        <form id="respond-form">
+          <div class="respond-field-label">Your response to the team</div>
+          <textarea id="respond-content" class="respond-textarea" placeholder="Share context, decisions, or acknowledgment with your team…" required></textarea>
+          <div class="respond-row">
+            <div class="respond-period-wrap">
+              <div class="respond-field-label">Period label <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.65rem">(optional)</span></div>
+              <input id="respond-period" class="respond-period-input" type="text" placeholder="e.g. Q2 2025, May All-Hands" />
+            </div>
+            <div>
+              <button type="submit" class="btn-primary btn-small">Post response</button>
+            </div>
+          </div>
+        </form>
+        <div id="respond-msg" class="inline-msg"></div>
+
+        <!-- Past responses -->
+        <div id="responses-section" style="display:none;margin-top:1.5rem;">
+          <div class="card-title" style="margin-bottom:0.75rem">Previous responses</div>
+          <div id="responses-list"></div>
+        </div>
+      </div>
+
+      <!-- Feedback Feed card -->
+      <div class="settings-card">
+        <div class="card-header">
+          <div class="card-title">Feedback Feed</div>
+          <span id="feed-count"></span>
+        </div>
+        <div id="feed-empty" style="display:none">No feedback submissions yet.</div>
+        <div id="feed-list"></div>
+        <button id="load-more-btn">Load more</button>
+      </div>
+
+      <!-- Delivery History card -->
+      <div class="settings-card" id="deliveries-card" style="display:none">
+        <div class="card-title">Email Digest History</div>
+        <div id="deliveries-empty" style="display:none;font-size:0.85rem;color:var(--text-tertiary)">No digests sent yet. The first batch will go out tonight.</div>
+        <div id="deliveries-list"></div>
+      </div>
+
+    </div><!-- /dashboard-content -->
+  </div>
+
+  <script src="./theme-toggle.js"></script>
+  <script type="module" src="./home-nav.ts"></script>
+  <script type="module" src="./dashboard.ts"></script>
+
+</body>
+</html>

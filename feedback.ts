@@ -1,5 +1,26 @@
 import type { AnalysisRisk } from "./analyze";
 import type { ReviewSuggestion } from "./review";
+import { authClient } from "./auth-client";
+
+// Show verification banner if user is signed in but email not verified
+(async () => {
+  const session = await authClient.getSession();
+  if (session?.data?.user && !session.data.user.emailVerified) {
+    const banner = document.getElementById("verify-banner")!;
+    banner.style.display = "flex";
+    document.getElementById("resend-verify")!.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const link = e.currentTarget as HTMLAnchorElement;
+      link.textContent = "Sending…";
+      link.style.pointerEvents = "none";
+      await authClient.sendVerificationEmail({
+        email: session.data.user.email,
+        callbackURL: "/feedback",
+      });
+      link.textContent = "Sent! Check your inbox.";
+    });
+  }
+})();
 
 const form = document.getElementById("feedback-form") as HTMLFormElement;
 const messageEl = document.getElementById("message") as HTMLDivElement;
@@ -70,6 +91,7 @@ function showMessage(text: string, type: "success" | "error") {
 let abortController: AbortController | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const dismissed = new Set<string>();
+let lastRisks: AnalysisRisk[] = [];
 
 function dismissKey(risk: AnalysisRisk): string {
   return `${risk.type}:${risk.matchedText}`;
@@ -118,10 +140,23 @@ function hideSuggestions() {
 }
 
 function renderSuggestions(risks: AnalysisRisk[]) {
+  lastRisks = risks;
   suggestionsList.innerHTML = "";
 
   if (risks.length === 0) {
-    hideSuggestions();
+    if (textarea.value.trim()) {
+      suggestionsPanel.style.display = "block";
+      suggestionsList.innerHTML = `
+        <div class="suggestions-clean">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <polyline points="2,8 6,12 14,4" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          No anonymity risks detected
+        </div>`;
+    } else {
+      hideSuggestions();
+    }
     return;
   }
 
@@ -229,7 +264,7 @@ reviewBtn.addEventListener("click", async () => {
     const res = await fetch("/api/feedback/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, risks: lastRisks }),
     });
 
     if (!res.ok) {
@@ -294,12 +329,20 @@ function renderReview(suggestions: ReviewSuggestion[], overall: string) {
     applyBtn.textContent = "Apply";
     applyBtn.type = "button";
     applyBtn.addEventListener("click", () => {
-      applyReviewSuggestion(s);
-      card.remove();
-      if (reviewContent.querySelectorAll(".review-card").length === 0) {
-        // Keep the overall summary visible
-        const overallEl = reviewContent.querySelector(".review-overall");
-        if (!overallEl) hideReview();
+      const applied = applyReviewSuggestion(s);
+      if (applied) {
+        card.remove();
+        if (reviewContent.querySelectorAll(".review-card").length === 0) {
+          const overallEl = reviewContent.querySelector(".review-overall");
+          if (!overallEl) hideReview();
+        }
+      } else {
+        applyBtn.disabled = true;
+        applyBtn.textContent = "Can't apply";
+        const err = document.createElement("div");
+        err.className = "review-apply-error";
+        err.textContent = "Draft changed — re-review to apply.";
+        actions.appendChild(err);
       }
     });
 
@@ -328,10 +371,10 @@ function renderReview(suggestions: ReviewSuggestion[], overall: string) {
   }
 }
 
-function applyReviewSuggestion(s: ReviewSuggestion) {
+function applyReviewSuggestion(s: ReviewSuggestion): boolean {
   const currentText = textarea.value;
   const idx = currentText.indexOf(s.original);
-  if (idx === -1) return;
+  if (idx === -1) return false;
 
   textarea.value =
     currentText.slice(0, idx) +
@@ -342,6 +385,6 @@ function applyReviewSuggestion(s: ReviewSuggestion) {
   textarea.setSelectionRange(cursorPos, cursorPos);
   textarea.focus();
 
-  // Re-trigger anonymity analysis since text changed
   triggerAnalysis();
+  return true;
 }

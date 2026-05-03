@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — anonovox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prata:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./design-system.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    .settings-shell {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 8rem 2rem 6rem;
+    }
+
+    .settings-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .settings-title {
+      font-family: var(--ff-display);
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── Cards ── */
+    .settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    /* ── Org info ── */
+    .org-info-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .org-info-name {
+      font-family: var(--ff-display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .org-info-domain {
+      font-size: 0.82rem;
+      color: var(--text-tertiary);
+      letter-spacing: 0.02em;
+    }
+
+    .org-info-meta {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Rename form ── */
+    #rename-form {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    #rename-input {
+      flex: 1;
+      min-width: 180px;
+      padding: 0.55rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: var(--ff-body);
+      outline: none;
+      transition: border-color var(--transition-fast);
+    }
+
+    #rename-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* ── Members table ── */
+    .members-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .members-table th {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      text-align: left;
+      padding: 0 0 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .members-table th:last-child { text-align: right; }
+
+    .members-table td {
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      vertical-align: middle;
+    }
+
+    .members-table tr:last-child td { border-bottom: none; }
+
+    .member-name {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+
+    .member-email {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 0.1rem;
+    }
+
+    .member-joined {
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+    }
+
+    .member-no-action {
+      color: var(--text-tertiary);
+    }
+
+    /* ── Role badges ── */
+    .role-badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .role-owner {
+      background: var(--accent-pale);
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+
+    .role-admin {
+      background: rgba(80, 60, 140, 0.08);
+      color: #5a3c8f;
+      border: 1px solid rgba(80, 60, 140, 0.2);
+    }
+
+    .role-member {
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-light);
+    }
+
+    /* ── Remove / action buttons ── */
+    .btn-remove, .btn-cancel-invite {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 0.4rem;
+      color: var(--text-tertiary);
+      font-size: 0.75rem;
+      font-family: var(--ff-body);
+      padding: 0.3rem 0.7rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      float: right;
+    }
+
+    .btn-remove:hover, .btn-cancel-invite:hover {
+      border-color: #c0392b;
+      color: #c0392b;
+      background: rgba(192, 57, 43, 0.05);
+    }
+
+    /* ── Invite form ── */
+    .invite-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .invite-email-wrap {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .field-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 0.4rem;
+    }
+
+    .field-input, .field-select {
+      width: 100%;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: var(--ff-body);
+      outline: none;
+      transition: border-color var(--transition-fast);
+      box-sizing: border-box;
+    }
+
+    .field-select {
+      cursor: pointer;
+      padding-right: 2rem;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.7rem center;
+    }
+
+    .field-input:focus, .field-select:focus {
+      border-color: var(--accent);
+    }
+
+    /* ── Invitations list ── */
+    .invitation-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.875rem;
+    }
+
+    .invitation-row:last-child { border-bottom: none; }
+
+    .invitation-email {
+      flex: 1;
+      color: var(--text-secondary);
+    }
+
+    .invitation-expiry {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+    }
+
+    /* ── Inline messages ── */
+    .inline-msg {
+      font-size: 0.8rem;
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.4rem;
+      display: none;
+    }
+
+    .inline-msg.success {
+      background: rgba(45, 80, 22, 0.08);
+      color: var(--success);
+      border: 1px solid rgba(45, 80, 22, 0.15);
+    }
+
+    .inline-msg.error {
+      background: rgba(180, 40, 20, 0.07);
+      color: #c0392b;
+      border: 1px solid rgba(180, 40, 20, 0.15);
+    }
+
+    /* ── Loading / no-org states ── */
+    #settings-loading, #no-org {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      padding: 3rem 0;
+      text-align: center;
+    }
+
+    #settings-content { display: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .settings-shell { padding: 6rem 1.25rem 4rem; }
+      .invite-row { flex-direction: column; }
+      #rename-form { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="wordmark">anono<b>vox</b></a>
+    <div class="nav-right">
+      <a href="/feedback" class="nav-link">Submit feedback</a>
+      <div style="display:flex;align-items:center;gap:1.5rem;">
+        <div class="theme-toggle">
+          <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
+          <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
+        </div>
+        <div id="nav-auth"><a href="/signin" class="btn-primary btn-small">Sign in</a></div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="settings-shell">
+    <div class="settings-eyebrow">Organization</div>
+    <h1 class="settings-title">Settings</h1>
+
+    <!-- Loading state -->
+    <div id="settings-loading">Loading…</div>
+
+    <!-- No org state -->
+    <div id="no-org" style="display:none">
+      <p>Your account is not associated with an organization.</p>
+      <p style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-tertiary)">Sign up with a work email to auto-provision your organization.</p>
+    </div>
+
+    <!-- Main content -->
+    <div id="settings-content">
+
+      <!-- Organization info card -->
+      <div class="settings-card">
+        <div class="card-title">Organization</div>
+        <div class="org-info-row">
+          <span class="org-info-name" id="org-name"></span>
+          <span class="org-info-domain" id="org-domain"></span>
+        </div>
+        <div class="org-info-meta"><span id="member-count">0</span> member(s)</div>
+
+        <!-- Rename form (admin/owner only) -->
+        <form id="rename-form" style="display:none">
+          <input id="rename-input" type="text" placeholder="Organization name" required />
+          <button type="submit" class="btn-secondary btn-small">Save</button>
+        </form>
+        <div id="rename-msg" class="inline-msg"></div>
+      </div>
+
+      <!-- Invite member card -->
+      <div class="settings-card">
+        <div class="card-title">Invite member</div>
+        <form id="invite-form">
+          <div class="invite-row">
+            <div class="invite-email-wrap">
+              <div class="field-label">Email address</div>
+              <input id="invite-email" class="field-input" type="email" placeholder="colleague@company.com" required />
+            </div>
+            <div>
+              <div class="field-label">Role</div>
+              <select id="invite-role" class="field-select">
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div style="padding-bottom:1px">
+              <button type="submit" class="btn-primary btn-small">Send invite</button>
+            </div>
+          </div>
+        </form>
+        <div id="invite-msg" class="inline-msg"></div>
+
+        <!-- Pending invitations -->
+        <div id="invitations-section" style="display:none;margin-top:1.5rem;">
+          <div class="card-title" style="margin-bottom:0.75rem">Pending invitations</div>
+          <div id="invitations-list"></div>
+        </div>
+      </div>
+
+      <!-- Members card -->
+      <div class="settings-card">
+        <div class="card-title">Members</div>
+        <table class="members-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="members-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Integrations card (admin/owner only) -->
+      <div class="settings-card" id="integrations-card" style="display:none">
+        <div class="card-title">Integrations</div>
+        <div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+          <div style="width:36px;height:36px;flex-shrink:0;background:#4A154B;border-radius:0.5rem;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zm2.521-10.123a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="white"/>
+            </svg>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:0.875rem;font-weight:500;color:var(--text-primary);margin-bottom:0.25rem">Slack</div>
+            <div id="slack-disconnected" style="display:none">
+              <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:0.85rem">
+                Let your team submit anonymous feedback using <code style="font-family:var(--ff-mono);font-size:0.78rem">/feedback</code> in any channel.
+              </p>
+              <a id="slack-install-btn" href="/api/slack/install" class="btn-primary btn-small">Add to Slack</a>
+            </div>
+            <div id="slack-connected" style="display:none">
+              <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:0.85rem">
+                Connected to <strong id="slack-team-name"></strong>. Members can submit feedback with <code style="font-family:var(--ff-mono);font-size:0.78rem">/feedback</code>.
+              </p>
+              <button id="slack-disconnect-btn" class="btn-remove" style="float:none">Disconnect</button>
+            </div>
+            <div id="slack-loading" style="font-size:0.82rem;color:var(--text-tertiary)">Loading…</div>
+          </div>
+        </div>
+        <div id="slack-msg" class="inline-msg"></div>
+
+        <!-- Teams row -->
+        <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border-light);display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+          <div style="width:36px;height:36px;flex-shrink:0;background:#6264A7;border-radius:0.5rem;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.625 6.75h-4.875V5.625A2.625 2.625 0 0013.125 3h-2.25A2.625 2.625 0 008.25 5.625V6.75H3.375A.375.375 0 003 7.125v9.75c0 .621.504 1.125 1.125 1.125h15.75A1.125 1.125 0 0021 16.875v-9.75a.375.375 0 00-.375-.375zM9.75 5.625A1.125 1.125 0 0110.875 4.5h2.25A1.125 1.125 0 0114.25 5.625V6.75H9.75V5.625zm9.75 11.25H4.5V7.875h15v9z" fill="white"/>
+              <circle cx="12" cy="12.75" r="2.25" fill="white"/>
+            </svg>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:0.875rem;font-weight:500;color:var(--text-primary);margin-bottom:0.25rem">Microsoft Teams</div>
+            <div id="teams-loading" style="font-size:0.82rem;color:var(--text-tertiary)">Loading…</div>
+
+            <!-- Connected via SSO (read-only — managed through Enterprise SSO card) -->
+            <div id="teams-connected-sso" style="display:none">
+              <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:0.5rem">
+                Connected via Microsoft SSO — Tenant: <code id="teams-tenant-id-sso" style="font-family:var(--ff-mono);font-size:0.78rem"></code>.
+                Members can message the bot to submit anonymous feedback.
+              </p>
+              <p style="font-size:0.78rem;color:var(--text-tertiary)">Managed through the Enterprise SSO settings below.</p>
+            </div>
+
+            <!-- Connected manually -->
+            <div id="teams-connected-manual" style="display:none">
+              <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:0.85rem">
+                Connected — Tenant: <code id="teams-tenant-id-manual" style="font-family:var(--ff-mono);font-size:0.78rem"></code>.
+                Members can message the bot to submit anonymous feedback.
+              </p>
+              <button id="teams-disconnect-btn" class="btn-remove" style="float:none">Disconnect</button>
+            </div>
+
+            <!-- Not connected -->
+            <div id="teams-disconnected" style="display:none">
+              <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:0.85rem">
+                Let your team submit anonymous feedback by messaging the Anonovox bot in Teams.
+              </p>
+              <form id="teams-link-form">
+                <div class="invite-row" style="flex-wrap:nowrap;align-items:flex-end;gap:0.5rem">
+                  <div class="invite-email-wrap">
+                    <div class="field-label">Microsoft Tenant ID</div>
+                    <input id="teams-tenant-input" class="field-input" type="text"
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      pattern="[0-9a-fA-F\-]{36}" required />
+                  </div>
+                  <div style="padding-bottom:1px">
+                    <button type="submit" class="btn-primary btn-small">Connect</button>
+                  </div>
+                </div>
+              </form>
+              <div style="margin-top:1rem;padding:0.75rem;background:var(--surface-alt);border-radius:0.5rem;border:1px solid var(--border-light)">
+                <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:0.5rem">Setup instructions</div>
+                <ol style="font-size:0.8rem;color:var(--text-secondary);line-height:1.8;margin:0;padding-left:1.25rem">
+                  <li>In <strong>Azure Portal</strong>, create an <strong>Azure Bot</strong> resource and note its App ID and Secret.</li>
+                  <li>Set <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_ID</code> and <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_SECRET</code> in your environment.</li>
+                  <li>Set the bot's messaging endpoint to <code style="font-family:var(--ff-mono);font-size:0.78rem">https://your-domain/api/teams/message</code>.</li>
+                  <li>Enable the <strong>Microsoft Teams</strong> channel on the bot.</li>
+                  <li>Find your Tenant ID in <strong>Azure Portal → Azure Active Directory → Overview</strong> and enter it above.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="teams-msg" class="inline-msg"></div>
+      </div>
+
+      <!-- Enterprise SSO card (admin/owner only) -->
+      <div class="settings-card" id="sso-card" style="display:none">
+        <div class="card-title">Enterprise SSO — Microsoft Entra ID</div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1.25rem;line-height:1.6">
+          Register your organization's Entra tenant so members can sign in with their work Microsoft accounts.
+          Once set, only tokens issued by this tenant will be accepted.
+        </p>
+        <div id="sso-tenant-display" style="display:none;margin-bottom:1.25rem;">
+          <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:0.4rem">Registered tenant ID</div>
+          <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+            <code id="sso-tenant-value" style="font-family:var(--ff-mono);font-size:0.82rem;color:var(--text-primary);background:var(--surface-alt);padding:0.3rem 0.6rem;border-radius:0.35rem;border:1px solid var(--border-light)"></code>
+            <button id="sso-clear-btn" class="btn-remove" style="float:none">Remove</button>
+          </div>
+        </div>
+        <form id="sso-form">
+          <div class="invite-row">
+            <div class="invite-email-wrap">
+              <div class="field-label">Tenant ID</div>
+              <input id="sso-tenant-input" class="field-input" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[0-9a-fA-F\-]{36}" />
+            </div>
+            <div style="padding-bottom:1px">
+              <button type="submit" class="btn-primary btn-small">Save</button>
+            </div>
+          </div>
+        </form>
+        <div id="sso-msg" class="inline-msg"></div>
+
+        <div style="margin-top:1.25rem;padding:0.75rem;background:var(--surface-alt);border-radius:0.5rem;border:1px solid var(--border-light)">
+          <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:0.5rem">Setup instructions</div>
+          <ol style="font-size:0.8rem;color:var(--text-secondary);line-height:1.8;margin:0;padding-left:1.25rem">
+            <li>In your <strong>Azure Portal</strong>, go to <strong>App registrations</strong> and find or create the anonovox enterprise app.</li>
+            <li>Under <strong>Authentication</strong>, add <code style="font-family:var(--ff-mono);font-size:0.78rem">https://anonovox.com/api/auth/callback/microsoft</code> as a redirect URI.</li>
+            <li>Under <strong>Overview</strong>, copy your <strong>Directory (tenant) ID</strong> and paste it above.</li>
+            <li>Grant admin consent so your org's members can sign in.</li>
+          </ol>
+        </div>
+      </div>
+
+    </div><!-- /settings-content -->
+  </div>
+
+  <script src="./theme-toggle.js"></script>
+  <script type="module" src="./home-nav.ts"></script>
+  <script type="module" src="./settings.ts"></script>
+
+</body>
+</html>
