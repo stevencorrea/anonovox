@@ -34,6 +34,22 @@ export interface TeamsRuntimeConfig {
   packageUrl: string | null;
 }
 
+export class TeamsTenantClaimedError extends Error {
+  constructor(tenantId: string) {
+    super(`Teams tenant ${tenantId} is already connected to another organization`);
+    this.name = "TeamsTenantClaimedError";
+  }
+}
+
+function isTeamsTenantConflict(err: unknown): boolean {
+  const error = err as { constraint?: unknown; message?: unknown };
+  return (
+    error.constraint === "teams_tenants_tenant_id_key"
+    || (typeof error.message === "string"
+      && error.message.includes("teams_tenants_tenant_id_key"))
+  );
+}
+
 const TEAMS_BRAND = {
   accent: "#6264A7",
   appName: "Anonovox",
@@ -653,19 +669,29 @@ export async function getOrgByTenantId(
     FROM "organization" o
     JOIN integration.teams_tenants tt ON tt.org_id = o.id
     WHERE tt.tenant_id = ${tenantId}
-    LIMIT 1
   `;
-  if (!rows[0]) return null;
+  if (rows.length === 0) return null;
+  if (rows.length > 1) {
+    console.error("[teams] Ambiguous tenant mapping for tenant:", tenantId);
+    return null;
+  }
   return { orgId: rows[0].org_id, orgSlug: rows[0].org_slug };
 }
 
 export async function saveTeamsTenant(orgId: string, tenantId: string): Promise<void> {
-  await Bun.sql`
-    INSERT INTO integration.teams_tenants (org_id, tenant_id)
-    VALUES (${orgId}, ${tenantId})
-    ON CONFLICT (org_id) DO UPDATE
-      SET tenant_id = EXCLUDED.tenant_id, linked_at = NOW()
-  `;
+  try {
+    await Bun.sql`
+      INSERT INTO integration.teams_tenants (org_id, tenant_id)
+      VALUES (${orgId}, ${tenantId})
+      ON CONFLICT (org_id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id, linked_at = NOW()
+    `;
+  } catch (err) {
+    if (isTeamsTenantConflict(err)) {
+      throw new TeamsTenantClaimedError(tenantId);
+    }
+    throw err;
+  }
 }
 
 export async function deleteTeamsTenant(orgId: string): Promise<void> {

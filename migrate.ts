@@ -297,5 +297,10 @@ export async function runMigrations() {
     )
   `;
 
+  await Bun.sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS teams_tenants_tenant_id_key
+    ON integration.teams_tenants (tenant_id)
+  `;
+
   console.log("Migrations complete.");
 }

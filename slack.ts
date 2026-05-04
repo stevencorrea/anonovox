@@ -1,5 +1,12 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+export class SlackWorkspaceClaimedError extends Error {
+  constructor(teamId: string) {
+    super(`Slack workspace ${teamId} is already connected to another organization`);
+    this.name = "SlackWorkspaceClaimedError";
+  }
+}
+
 // ── Slack request signature verification ──────────────────────────────────
 // Slack signs every inbound request with HMAC-SHA256 using SLACK_SIGNING_SECRET.
 // We also enforce a 5-minute timestamp window to prevent replay attacks.
@@ -87,17 +94,21 @@ export async function saveSlackWorkspace(
   accessToken: string,
   installedBy: string | null,
 ): Promise<void> {
-  await Bun.sql`
+  const rows = await Bun.sql`
     INSERT INTO integration.slack_workspaces
       (org_id, slack_workspace_id, team_name, access_token, installed_by)
     VALUES (${orgId}, ${teamId}, ${teamName}, ${accessToken}, ${installedBy})
     ON CONFLICT (slack_workspace_id) DO UPDATE
-      SET org_id       = EXCLUDED.org_id,
-          team_name    = EXCLUDED.team_name,
+      SET team_name    = EXCLUDED.team_name,
           access_token = EXCLUDED.access_token,
           installed_by = EXCLUDED.installed_by,
           installed_at = NOW()
+      WHERE integration.slack_workspaces.org_id = EXCLUDED.org_id
+    RETURNING org_id
   `;
+  if (!rows[0]) {
+    throw new SlackWorkspaceClaimedError(teamId);
+  }
 }
 
 export async function deleteSlackWorkspace(orgId: string): Promise<void> {

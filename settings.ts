@@ -133,6 +133,9 @@ const ssoMsg = document.getElementById("sso-msg") as HTMLElement;
     if (slackParam === "connected") {
       setMsg(slackMsg, "Slack connected successfully.", "success");
       history.replaceState({}, "", "/settings");
+    } else if (slackParam === "claimed") {
+      setMsg(slackMsg, "This Slack workspace is already connected to another organization.", "error");
+      history.replaceState({}, "", "/settings");
     } else if (slackParam === "error") {
       setMsg(slackMsg, "Failed to connect Slack. Please try again.", "error");
       history.replaceState({}, "", "/settings");
@@ -504,12 +507,13 @@ teamsLinkForm.addEventListener("submit", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tenantId }),
     });
-    if (!res.ok) throw new Error("Failed");
+    if (!res.ok) throw new Error(await readApiError(res, "Failed to connect. Check the tenant ID and try again."));
     await loadTeamsStatus();
     setMsg(teamsMsg, "Teams connected successfully.", "success");
     teamsTenantInput.value = "";
-  } catch {
-    setMsg(teamsMsg, "Failed to connect. Check the tenant ID and try again.", "error");
+  } catch (err) {
+    const message = err instanceof Error && err.message ? err.message : "Failed to connect. Check the tenant ID and try again.";
+    setMsg(teamsMsg, message, "error");
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = "Connect";

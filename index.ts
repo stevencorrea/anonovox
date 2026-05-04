@@ -22,6 +22,7 @@ import {
   verifyState,
   getSlackWorkspace,
   saveSlackWorkspace,
+  SlackWorkspaceClaimedError,
   deleteSlackWorkspace,
   getSlackConnectionByOrg,
 } from "./slack";
@@ -35,6 +36,7 @@ import {
   getTeamsRuntimeConfig,
   getNormalizedTeamsMessage,
   buildTeamsAppPackage,
+  TeamsTenantClaimedError,
   type TeamsActivity,
 } from "./teams";
 import { getCachedInsights, refreshInsights } from "./insights";
@@ -413,7 +415,14 @@ const server = Bun.serve({
         if (!tenantId || !isValidTenantId(tenantId)) {
           return errorResponse(400, "Valid tenant ID required");
         }
-        await saveTeamsTenant(guard.org.id, tenantId);
+        try {
+          await saveTeamsTenant(guard.org.id, tenantId);
+        } catch (err) {
+          if (err instanceof TeamsTenantClaimedError) {
+            return errorResponse(409, "This Teams tenant is already connected to another organization");
+          }
+          throw err;
+        }
         return Response.json({ ok: true });
       },
     },
@@ -511,7 +520,14 @@ const server = Bun.serve({
         const orgs = await Bun.sql`SELECT id FROM "organization" WHERE id = ${orgId} LIMIT 1`;
         if (!orgs[0]) return Response.redirect("/settings?slack=error", 302);
 
-        await saveSlackWorkspace(orgId, data.team.id, data.team.name, data.access_token, null);
+        try {
+          await saveSlackWorkspace(orgId, data.team.id, data.team.name, data.access_token, null);
+        } catch (err) {
+          if (err instanceof SlackWorkspaceClaimedError) {
+            return Response.redirect("/settings?slack=claimed", 302);
+          }
+          throw err;
+        }
         return Response.redirect("/settings?slack=connected", 302);
       },
     },
