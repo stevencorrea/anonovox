@@ -1,21 +1,21 @@
-import homePage from "./index.html";
-import feedbackPage from "./feedback.html";
-import signinPage from "./signin.html";
-import acceptInvitationPage from "./accept-invitation.html";
-import pricingPage from "./pricing.html";
-import settingsPage from "./settings.html";
-import dashboardPage from "./dashboard.html";
-import { auth } from "./auth";
-import { runMigrations } from "./migrate";
-import { analyzeText } from "./analyze";
-import type { AnalysisRisk } from "./analyze";
-import { reviewDraft } from "./review";
+import homePage from "./pages/index.html";
+import feedbackPage from "./pages/feedback.html";
+import signinPage from "./pages/signin.html";
+import acceptInvitationPage from "./pages/accept-invitation.html";
+import pricingPage from "./pages/pricing.html";
+import settingsPage from "./pages/settings.html";
+import dashboardPage from "./pages/dashboard.html";
+import { auth } from "./server/auth";
+import { runMigrations } from "./server/migrate";
+import { analyzeText } from "./lib/analyze";
+import type { AnalysisRisk } from "./lib/analyze";
+import { reviewDraft } from "./lib/review";
 import {
   getSessionOrgMembership,
   requireOrgAdmin,
   requireVerifiedSession,
   setOrgEntraTenant,
-} from "./org";
+} from "./server/org";
 import {
   verifySlackSignature,
   signState,
@@ -25,7 +25,7 @@ import {
   SlackWorkspaceClaimedError,
   deleteSlackWorkspace,
   getSlackConnectionByOrg,
-} from "./slack";
+} from "./server/integrations/slack";
 import {
   verifyBotToken,
   sendTeamsReply,
@@ -38,9 +38,9 @@ import {
   buildTeamsAppPackage,
   TeamsTenantClaimedError,
   type TeamsActivity,
-} from "./teams";
-import { getCachedInsights, refreshInsights } from "./insights";
-import { startScheduler, runBatchJob } from "./scheduler";
+} from "./server/integrations/teams";
+import { getCachedInsights, refreshInsights } from "./server/insights";
+import { startScheduler, runBatchJob } from "./server/scheduler";
 
 const MAX_FEEDBACK_LENGTH = 4_000;
 const MAX_PERIOD_LABEL_LENGTH = 120;

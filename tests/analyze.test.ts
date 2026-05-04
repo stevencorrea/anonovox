@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { analyzeText } from "./analyze";
+import { analyzeText } from "../src/lib/analyze";
 
 describe("analyzeText", () => {
   test("returns empty risks for empty input", () => {

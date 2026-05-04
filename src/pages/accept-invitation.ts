@@ -1,4 +1,4 @@
-import { authClient } from "./auth-client";
+import { authClient } from "../client/auth-client";
 
 const params = new URLSearchParams(location.search);
 const invitationId = params.get("id");

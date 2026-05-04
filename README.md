@@ -43,7 +43,7 @@ Accessing /feedback
 Examples:
 - Development (hot reload):
 ```sh
-bun --hot index.ts
+bun --hot src/index.ts
 ```
 
 - Docker:
@@ -77,26 +77,26 @@ docker compose down -v       # stop containers and wipe the DB volume
 ## Project structure
 
 ```
-index.ts            # Bun.serve() routes and server entry point
-auth.ts             # Better Auth configuration (PostgreSQL via pg Pool)
-auth-client.ts      # Browser-side auth helpers
-migrate.ts          # Creates all DB tables on startup (auth + split feedback schemas)
+src/index.ts        # Bun.serve() routes and server entry point
+src/server/         # Auth, org resolution, migrations, mailer, scheduler, insights
+src/server/integrations/ # Slack + Teams integrations
+src/client/         # Browser-side auth helpers and shared UI scripts
+src/pages/          # Bun HTML pages and page-specific client scripts
+src/lib/            # Shared analysis/review logic
+src/styles/         # Shared CSS
+tests/              # Bun test files
 package.json        # Dependencies and project metadata
 bun.lock            # Lockfile for reproducible builds
 tsconfig.json       # TypeScript configuration
 docker-compose.yml  # Local dev: postgres + app with hot reload
 Dockerfile          # Production image
 .dockerignore       # Build context filter (excludes .git, node_modules, docs)
-signin.html/ts      # Sign-in / sign-up page
-feedback.html       # Feedback submission form
-index.html          # Landing page
-home-nav.ts         # Shared nav component
 docs/               # Project proposal and presentation
 ```
 
 ## Database schema
 
-`migrate.ts` owns all table definitions and runs on every startup (`CREATE TABLE IF NOT EXISTS`; idempotent):
+`src/server/migrate.ts` owns all table definitions and runs on every startup (`CREATE TABLE IF NOT EXISTS`; idempotent):
 
 **Schema separation:** Feedback is split across two schemas to enable safe reporting without exposing PII:
 - `reporting.*` contains anonymized feedback content (safe for dashboards and analytics)
@@ -174,7 +174,7 @@ Pass env vars via file:
 
 ```sh
 docker run --rm -p 3000:3000 --env-file .env \
-  --entrypoint bun anonovox:latest index.ts --production
+  --entrypoint bun anonovox:latest src/index.ts --production
 ```
 
 ---

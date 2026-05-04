@@ -1,6 +1,6 @@
-import type { AnalysisRisk } from "./analyze";
-import type { ReviewSuggestion } from "./review";
-import { authClient } from "./auth-client";
+import type { AnalysisRisk } from "../lib/analyze";
+import type { ReviewSuggestion } from "../lib/review";
+import { authClient } from "../client/auth-client";
 
 type StructuredPoll = {
   id: string;

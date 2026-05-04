@@ -1,4 +1,4 @@
-import { authClient } from "./auth-client";
+import { authClient } from "../client/auth-client";
 
 type InsightsResult = {
   themes: string[];

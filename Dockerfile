@@ -10,4 +10,4 @@ COPY . .
 ENV NODE_ENV=production
 EXPOSE 3000
 
-ENTRYPOINT ["bun", "index.ts", "--production", "--no-env-file"]
+ENTRYPOINT ["bun", "src/index.ts", "--production", "--no-env-file"]

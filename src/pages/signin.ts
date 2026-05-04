@@ -1,4 +1,4 @@
-import { authClient } from "./auth-client";
+import { authClient } from "../client/auth-client";
 
 // Redirect if already signed in
 const { data: session } = await authClient.getSession();
