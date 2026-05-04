@@ -11,6 +11,7 @@ function getTrustedOrigins(): string[] {
   const origins = new Set<string>([
     `http://localhost:${process.env.PORT ?? 3000}`,
     "http://localhost:3000",
+    "https://anonovox.com"
   ]);
 
   const configured = [
