@@ -59,12 +59,26 @@ Core app and auth:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DATABASE_URL` | yes | Postgres connection string |
+| `DATABASE_URL` | local dev yes | Postgres connection string |
 | `BETTER_AUTH_SECRET` | yes | Session and auth signing secret |
 | `BETTER_AUTH_URL` | yes | Public base URL for auth callbacks and generated links |
 | `PORT` | no | HTTP port, defaults to `3000` |
 | `NODE_ENV` | no | `development` locally, `production` for hardened runtime checks |
 | `ADDITIONAL_TRUSTED_ORIGINS` | no | Extra comma-separated origins trusted by Better Auth |
+
+For local development, use `DATABASE_URL`.
+
+For Cloud Run production with Cloud SQL, you can use socket-style Postgres env vars instead of `DATABASE_URL`:
+
+```env
+PGHOST=/cloudsql/your-project:your-region:your-instance
+PGPORT=5432
+PGUSERNAME=anonovoxapp
+PGPASSWORD=replace-with-your-db-password
+PGDATABASE=anonovox
+```
+
+That production-only path leaves the local Docker Compose flow unchanged.
 
 Email and digests:
 

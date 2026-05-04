@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import { dash } from "@better-auth/infra";
 import { organization } from "better-auth/plugins";
 import { ensureOrgMembership, handleEntraAccountCreated, handleEntraAccountUpdated } from "./org";
+import { getDatabasePoolConfig } from "./db";
 import { sendVerificationEmail, sendInvitationEmail } from "./mailer";
 
 const APP_BASE_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -35,9 +36,7 @@ function getTrustedOrigins(): string[] {
 
 export const auth = betterAuth({
   baseURL: APP_BASE_URL,
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
+  database: new Pool(getDatabasePoolConfig()),
   emailAndPassword: {
     enabled: true,
   },

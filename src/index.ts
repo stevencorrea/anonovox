@@ -18,6 +18,7 @@ import {
   requireVerifiedSession,
   setOrgEntraTenant,
 } from "./server/org";
+import { validateProductionDatabaseConfig } from "./server/db";
 import { instrumentRoutes, getMetricsSnapshot, getRecentSpans, getSystemInfo } from "./lib/telemetry";
 import {
   verifySlackSignature,
@@ -58,7 +59,6 @@ const APP_BASE_URL = process.env.BETTER_AUTH_URL ?? `http://localhost:${process.
 const IS_HOT_RELOAD = Bun.argv.includes("--hot");
 const IS_PRODUCTION_RUNTIME = process.env.NODE_ENV === "production" && !IS_HOT_RELOAD;
 const PRODUCTION_REQUIRED_ENV_VARS = [
-  "DATABASE_URL",
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_URL",
   "RESEND_API_KEY",
@@ -272,6 +272,8 @@ function isUnsetOrPlaceholder(value: string | undefined): boolean {
 
 function validateRuntimeConfig() {
   if (!IS_PRODUCTION_RUNTIME) return;
+
+  validateProductionDatabaseConfig();
 
   const missing = PRODUCTION_REQUIRED_ENV_VARS.filter((name) =>
     isUnsetOrPlaceholder(process.env[name]),
