@@ -38,21 +38,21 @@ Checks:
 
 Accessing /feedback
 - The feedback page (GET /feedback) is publicly accessible; anyone can view the submission form without signing in.
-- By default, submitting feedback (POST /api/feedback) requires a valid authenticated session. To allow anonymous submissions (so anyone can POST feedback without logging in), start the server with the environment variable `DISABLE_AUTH=true`. When auth is disabled the server will record submissions but store `user_id` and `user_email` as `NULL`.
+- Submitting feedback (POST /api/feedback) requires a valid authenticated session. The app uses the signed-in user's email address to determine which organization the feedback belongs to, so anonymous submissions are not supported.
 
 Examples:
 - Development (hot reload):
 ```sh
-DISABLE_AUTH=true bun --hot index.ts
+bun --hot index.ts
 ```
 
-- Docker (run image and allow anonymous submissions):
+- Docker:
 ```sh
-docker run --rm -e DISABLE_AUTH=true -p 3000:3000 anonovox:latest
+docker run --rm -p 3000:3000 anonovox:latest
 ```
 
 Security note
-- `DISABLE_AUTH=true` is intended for local testing only. Do not enable anonymous submissions in production unless you intentionally accept unauthenticated feedback and the associated risks (spam, abuse, lack of accountability).
+- Because org routing depends on the submitter's authenticated email address, feedback submission should remain behind authentication in every environment.
 - In production, prefer the external scheduler endpoint (`POST /api/scheduler/run`) and leave `ENABLE_IN_PROCESS_SCHEDULER` unset so multiple web instances do not send duplicate digests.
 
 ### Microsoft Teams setup

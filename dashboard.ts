@@ -60,7 +60,7 @@ const PAGE_SIZE = 20;
 
   const meRes = await fetch("/api/org/me");
   if (!meRes.ok) {
-    showError("Failed to load organization info.");
+    showError(await readApiError(meRes, "Failed to load organization info."));
     return;
   }
   const me = await meRes.json() as { orgId: string | null; role: string | null };
@@ -336,6 +336,15 @@ function showError(msg: string) {
   loadingEl.style.display = "none";
   errorEl.textContent = msg;
   errorEl.style.display = "block";
+}
+
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json() as { error?: unknown };
+    return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function setMsg(el: HTMLElement, text: string, type: "success" | "error" | "") {

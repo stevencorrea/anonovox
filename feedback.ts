@@ -77,6 +77,11 @@ form.addEventListener("submit", async (e) => {
       );
     } else if (res.status === 401) {
       showMessage("You must be signed in to submit feedback.", "error");
+    } else if (res.status === 403) {
+      showMessage(
+        await readApiError(res, "Verify your email before submitting feedback."),
+        "error",
+      );
     } else {
       showMessage("Something went wrong. Please try again.", "error");
     }
@@ -92,6 +97,15 @@ function showMessage(text: string, type: "success" | "error") {
   messageEl.textContent = text;
   messageEl.className = `message ${type}`;
   messageEl.style.display = "block";
+}
+
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json() as { error?: unknown };
+    return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 // --- Debounced analysis ---

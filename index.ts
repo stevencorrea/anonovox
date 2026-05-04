@@ -10,7 +10,12 @@ import { runMigrations } from "./migrate";
 import { analyzeText } from "./analyze";
 import type { AnalysisRisk } from "./analyze";
 import { reviewDraft } from "./review";
-import { requireOrgAdmin, getOrgByDomain, setOrgEntraTenant } from "./org";
+import {
+  getSessionOrgMembership,
+  requireOrgAdmin,
+  requireVerifiedSession,
+  setOrgEntraTenant,
+} from "./org";
 import {
   verifySlackSignature,
   signState,
@@ -40,6 +45,15 @@ const MAX_PERIOD_LABEL_LENGTH = 120;
 const MAX_FEED_LIMIT = 100;
 const ENTRA_TENANT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const APP_BASE_URL = process.env.BETTER_AUTH_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+const IS_HOT_RELOAD = Bun.argv.includes("--hot");
+const IS_PRODUCTION_RUNTIME = process.env.NODE_ENV === "production" && !IS_HOT_RELOAD;
+const PRODUCTION_REQUIRED_ENV_VARS = [
+  "DATABASE_URL",
+  "BETTER_AUTH_SECRET",
+  "BETTER_AUTH_URL",
+  "RESEND_API_KEY",
+  "EMAIL_FROM",
+] as const;
 
 function errorResponse(status: number, error: string) {
   return Response.json({ error }, { status });
@@ -90,8 +104,45 @@ function getClientIp(req: Request): string | null {
   return req.headers.get("cf-connecting-ip")?.trim().slice(0, 255) ?? null;
 }
 
+function isUnsetOrPlaceholder(value: string | undefined): boolean {
+  const trimmed = value?.trim();
+  return !trimmed || trimmed.toUpperCase() === "PLACEHOLDER";
+}
+
+function validateRuntimeConfig() {
+  if (!IS_PRODUCTION_RUNTIME) return;
+
+  const missing = PRODUCTION_REQUIRED_ENV_VARS.filter((name) =>
+    isUnsetOrPlaceholder(process.env[name]),
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required production configuration: ${missing.join(", ")}`,
+    );
+  }
+
+  let parsedBaseUrl: URL;
+  try {
+    parsedBaseUrl = new URL(APP_BASE_URL);
+  } catch {
+    throw new Error("BETTER_AUTH_URL must be a valid absolute URL in production");
+  }
+
+  if (["localhost", "127.0.0.1", "0.0.0.0"].includes(parsedBaseUrl.hostname)) {
+    throw new Error("BETTER_AUTH_URL must not point to localhost in production");
+  }
+}
+
+validateRuntimeConfig();
 await runMigrations();
 startScheduler();
+
+const developmentOptions = IS_PRODUCTION_RUNTIME
+  ? undefined
+  : {
+      hmr: true,
+      console: true,
+    };
 
 const server = Bun.serve({
   port: Number(process.env.PORT ?? 3000),
@@ -105,17 +156,13 @@ const server = Bun.serve({
     "/dashboard": dashboardPage,
     "/api/org/me": {
       GET: async (req) => {
-        const session = await auth.api.getSession({ headers: req.headers });
-        if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
-        const domain = session.user.email.split("@")[1];
-        if (!domain) return Response.json({ orgId: null, role: null });
-        const org = await getOrgByDomain(domain);
-        if (!org) return Response.json({ orgId: null, role: null });
-        const rows = await Bun.sql`
-          SELECT role FROM "member"
-          WHERE "organizationId" = ${org.id} AND "userId" = ${session.user.id}
-        `;
-        return Response.json({ orgId: org.id, role: rows[0]?.role ?? null });
+        const session = await requireVerifiedSession(req);
+        if (session instanceof Response) return session;
+        const membership = await getSessionOrgMembership(session);
+        return Response.json({
+          orgId: membership?.org.id ?? null,
+          role: membership?.role ?? null,
+        });
       },
     },
     "/api/org/entra-tenant": {
@@ -579,8 +626,10 @@ const server = Bun.serve({
     },
     "/api/feedback": {
       POST: async (req) => {
-        const session = await auth.api.getSession({ headers: req.headers });
-        if (!session) return errorResponse(401, "Unauthorized");
+        const session = await requireVerifiedSession(req);
+        if (session instanceof Response) return session;
+        const membership = await getSessionOrgMembership(session);
+        if (!membership) return errorResponse(403, "No organization found");
 
         const body = await readJsonBody<{ feedback?: string }>(req);
         if (!body) return errorResponse(400, "Invalid JSON body");
@@ -591,7 +640,7 @@ const server = Bun.serve({
 
         const userId = session.user.id;
         const userEmail = session.user.email;
-        const orgDomain = userEmail.split("@")[1] ?? null;
+        const orgDomain = membership.org.slug;
         const ipAddress = getClientIp(req);
         const userAgent = req.headers.get("user-agent")?.slice(0, 512) ?? null;
 
@@ -615,11 +664,7 @@ const server = Bun.serve({
   fetch(req) {
     return auth.handler(req);
   },
-  // enable hot reload and console log output to browser in development mode
-  development: {
-    hmr: true,
-    console: true,
-  },
+  development: developmentOptions,
 });
 
 console.log(`Listening on ${server.url}`);

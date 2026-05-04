@@ -263,26 +263,108 @@ export async function setOrgEntraTenant(orgId: string, tenantId: string | null) 
   await Bun.sql`UPDATE "organization" SET "entraTenantId" = ${tenantId} WHERE id = ${orgId}`;
 }
 
+type SessionData = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+type OrgRecord = { id: string; name: string; slug: string; entraTenantId: string | null };
+type OrgMembershipRow = OrgRecord & { role: string; memberCreatedAt: string };
+
+function getActiveOrganizationId(session: SessionData): string | null {
+  const activeOrganizationId =
+    (session.session as { activeOrganizationId?: string | null }).activeOrganizationId;
+  return typeof activeOrganizationId === "string" && activeOrganizationId.trim()
+    ? activeOrganizationId
+    : null;
+}
+
+function rolePriority(role: string): number {
+  switch (role) {
+    case "owner":
+      return 0;
+    case "admin":
+      return 1;
+    case "member":
+      return 2;
+    default:
+      return 3;
+  }
+}
+
+function unauthorizedResponse() {
+  return Response.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+function verifiedEmailRequiredResponse() {
+  return Response.json({ error: "Verified email required" }, { status: 403 });
+}
+
+export async function requireVerifiedSession(req: Request): Promise<SessionData | Response> {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session) return unauthorizedResponse();
+  if (!session.user.emailVerified) return verifiedEmailRequiredResponse();
+  return session;
+}
+
+export async function getSessionOrgMembership(
+  session: SessionData,
+): Promise<{ org: OrgRecord; role: string } | null> {
+  const memberships = await Bun.sql`
+    SELECT
+      o.id,
+      o.name,
+      o.slug,
+      o."entraTenantId",
+      m.role,
+      m."createdAt" AS "memberCreatedAt"
+    FROM "member" m
+    JOIN "organization" o ON o.id = m."organizationId"
+    WHERE m."userId" = ${session.user.id}
+  ` as OrgMembershipRow[];
+
+  if (!memberships.length) return null;
+
+  const activeOrganizationId = getActiveOrganizationId(session);
+  const activeMembership = activeOrganizationId
+    ? memberships.find((membership) => membership.id === activeOrganizationId)
+    : null;
+  if (activeMembership) {
+    const { role, memberCreatedAt: _memberCreatedAt, ...org } = activeMembership;
+    return { org, role };
+  }
+
+  const emailDomain = getEmailDomain(session.user.email);
+  const domainMembership = emailDomain
+    ? memberships.find((membership) => membership.slug === emailDomain)
+    : null;
+  if (domainMembership) {
+    const { role, memberCreatedAt: _memberCreatedAt, ...org } = domainMembership;
+    return { org, role };
+  }
+
+  const [fallbackMembership] = [...memberships].sort((a, b) => {
+    const roleDelta = rolePriority(a.role) - rolePriority(b.role);
+    if (roleDelta !== 0) return roleDelta;
+    return new Date(a.memberCreatedAt).getTime() - new Date(b.memberCreatedAt).getTime();
+  });
+
+  if (!fallbackMembership) return null;
+
+  const { role, memberCreatedAt: _memberCreatedAt, ...org } = fallbackMembership;
+  return { org, role };
+}
+
 type AdminCheckResult =
-  | { session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>; org: { id: string; name: string; slug: string; entraTenantId: string | null }; role: "owner" | "admin" }
+  | { session: SessionData; org: OrgRecord; role: "owner" | "admin" }
   | Response;
 
 export async function requireOrgAdmin(req: Request): Promise<AdminCheckResult> {
-  const session = await auth.api.getSession({ headers: req.headers });
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await requireVerifiedSession(req);
+  if (session instanceof Response) return session;
 
-  const domain = getEmailDomain(session.user.email);
-  if (!domain) return Response.json({ error: "No organization found" }, { status: 403 });
-  const org = await getOrgByDomain(domain);
-  if (!org) return Response.json({ error: "No organization found" }, { status: 403 });
+  const membership = await getSessionOrgMembership(session);
+  if (!membership) return Response.json({ error: "No organization found" }, { status: 403 });
 
-  const rows = await Bun.sql`
-    SELECT role FROM "member"
-    WHERE "organizationId" = ${org.id} AND "userId" = ${session.user.id}
-  `;
-  if (!rows.length || !["owner", "admin"].includes(rows[0].role as string)) {
+  if (!["owner", "admin"].includes(membership.role)) {
     return Response.json({ error: "Admin access required" }, { status: 403 });
   }
 
-  return { session, org, role: rows[0].role as "owner" | "admin" };
+  return { session, org: membership.org, role: membership.role as "owner" | "admin" };
 }

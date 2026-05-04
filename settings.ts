@@ -86,9 +86,12 @@ const ssoMsg = document.getElementById("sso-msg") as HTMLElement;
   currentUserId = session.data.user.id;
 
   try {
-    // 1. Get org ID + role for current user (custom endpoint, domain-based)
+    // 1. Get org ID + role for the current user
     const meRes = await fetch("/api/org/me");
-    if (!meRes.ok) throw new Error("Failed to load org info");
+    if (!meRes.ok) {
+      loadingEl.textContent = await readApiError(meRes, "Failed to load settings.");
+      return;
+    }
     const me = await meRes.json() as { orgId: string | null; role: string | null };
 
     if (!me.orgId) {
@@ -346,6 +349,15 @@ function setMsg(el: HTMLElement, text: string, type: "success" | "error" | "") {
   el.textContent = text;
   el.className = `inline-msg ${type}`;
   el.style.display = text ? "block" : "none";
+}
+
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json() as { error?: unknown };
+    return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function formatDate(iso: string): string {
