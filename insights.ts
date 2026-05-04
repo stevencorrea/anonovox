@@ -10,6 +10,35 @@ export interface InsightsResult {
   overall_summary: string;
 }
 
+function normalizePercent(value: unknown): number {
+  if (typeof value !== "number" || Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function normalizeInsightsResult(value: unknown): InsightsResult {
+  const parsed = value as {
+    themes?: unknown;
+    sentiment?: { positive?: unknown; neutral?: unknown; negative?: unknown };
+    key_quotes?: unknown;
+    overall_summary?: unknown;
+  };
+
+  const positive = normalizePercent(parsed?.sentiment?.positive);
+  const neutral = normalizePercent(parsed?.sentiment?.neutral);
+  const negative = Math.max(0, 100 - positive - neutral);
+
+  return {
+    themes: Array.isArray(parsed?.themes)
+      ? parsed.themes.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 6)
+      : [],
+    sentiment: { positive, neutral, negative },
+    key_quotes: Array.isArray(parsed?.key_quotes)
+      ? parsed.key_quotes.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 4)
+      : [],
+    overall_summary: typeof parsed?.overall_summary === "string" ? parsed.overall_summary.trim() : "",
+  };
+}
+
 const SYSTEM_PROMPT = `You are analyzing anonymous employee feedback for a leadership team. Synthesize the submissions into structured insights.
 
 Respond with ONLY valid JSON matching this exact schema:
@@ -22,6 +51,10 @@ Respond with ONLY valid JSON matching this exact schema:
 The three sentiment numbers must sum to 100.`;
 
 async function generateInsights(items: string[]): Promise<InsightsResult> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is not configured");
+  }
+
   const userMessage = `Analyze these ${items.length} anonymous feedback submissions:\n\n${items.map((t, i) => `${i + 1}. ${t}`).join("\n\n")}`;
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
@@ -30,9 +63,10 @@ async function generateInsights(items: string[]): Promise<InsightsResult> {
     messages: [{ role: "user", content: userMessage }],
   });
   const content = message.content[0];
+  if (!content) throw new Error("No content returned from insights model");
   if (content.type !== "text") throw new Error("Unexpected response type");
   const raw = content.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-  return JSON.parse(raw) as InsightsResult;
+  return normalizeInsightsResult(JSON.parse(raw));
 }
 
 export async function getCachedInsights(orgId: string): Promise<{ insights: InsightsResult; generated_at: string } | null> {

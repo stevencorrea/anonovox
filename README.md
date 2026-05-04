@@ -19,6 +19,8 @@ Bun and Docker Compose both read `.env` from the project root. The defaults in `
 | `BETTER_AUTH_SECRET` | Secret used to sign sessions; rotate with `openssl rand -base64 32` |
 | `BETTER_AUTH_URL` | Base URL the server is reachable at (default: `http://localhost:3000`) |
 | `BETTER_AUTH_API_KEY` | API key for the Better Auth admin dashboard |
+| `ADDITIONAL_TRUSTED_ORIGINS` | Optional comma-separated extra origins for Better Auth CORS/trusted-origin checks |
+| `ENABLE_IN_PROCESS_SCHEDULER` | Set to `true` to run the hourly digest scheduler inside the web process; production defaults to off |
 
 ### 2. Start everything
 
@@ -29,6 +31,10 @@ docker compose up
 This boots a Postgres 17 container and the app container, wired together. The app waits for Postgres to be healthy before starting. **All database tables, including Better Auth's auth tables, are created automatically on first startup** via `migrate.ts`, so there is no separate migration step.
 
 The app is available at http://localhost:3000 with hot reload enabled.
+
+Checks:
+- `bun run typecheck`
+- `bun test`
 
 Accessing /feedback
 - The feedback page (GET /feedback) is publicly accessible; anyone can view the submission form without signing in.
@@ -47,6 +53,17 @@ docker run --rm -e DISABLE_AUTH=true -p 3000:3000 anonovox:latest
 
 Security note
 - `DISABLE_AUTH=true` is intended for local testing only. Do not enable anonymous submissions in production unless you intentionally accept unauthenticated feedback and the associated risks (spam, abuse, lack of accountability).
+- In production, prefer the external scheduler endpoint (`POST /api/scheduler/run`) and leave `ENABLE_IN_PROCESS_SCHEDULER` unset so multiple web instances do not send duplicate digests.
+
+### Microsoft Teams setup
+
+Admins can finish Teams setup from `/settings`:
+- Set `TEAMS_APP_ID`, `TEAMS_APP_SECRET`, and a public `BETTER_AUTH_URL`.
+- Configure the Azure Bot messaging endpoint to `https://your-domain/api/teams/message`.
+- Download the generated Teams app package from Settings and upload it in Teams.
+- Link the org tenant either by entering the Microsoft tenant ID in the Teams card or by registering the Entra tenant in the SSO card.
+
+Once installed, users can message the bot directly in Teams and anonovox will strip the bot mention/Teams markup before storing the submission.
 
 ### 3. Stop and clean up
 

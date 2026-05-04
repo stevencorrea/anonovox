@@ -7,17 +7,43 @@ const BATCH_INTERVAL_HOURS = 23;
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 // Initial delay before first run after startup
 const STARTUP_DELAY_MS = 60 * 1000; // 1 minute
+let schedulerStarted = false;
+let inFlightBatchJob: Promise<void> | null = null;
 
 export function startScheduler() {
+  const shouldRunInternally =
+    process.env.ENABLE_IN_PROCESS_SCHEDULER === "true"
+    || process.env.NODE_ENV !== "production";
+
+  if (!shouldRunInternally) {
+    console.log("[scheduler] In-process scheduler disabled for this environment.");
+    return;
+  }
+
+  if (schedulerStarted) return;
+  schedulerStarted = true;
   console.log("[scheduler] Starting. First run in 1 minute, then every hour.");
   setTimeout(() => {
-    runBatchJob();
+    void runBatchJob();
     setInterval(runBatchJob, POLL_INTERVAL_MS);
   }, STARTUP_DELAY_MS);
 }
 
 // Exported so it can be triggered via POST /api/scheduler/run in production
 export async function runBatchJob() {
+  if (inFlightBatchJob) {
+    console.log("[scheduler] Batch job already running, skipping overlapping trigger.");
+    return inFlightBatchJob;
+  }
+
+  inFlightBatchJob = runBatchJobOnce().finally(() => {
+    inFlightBatchJob = null;
+  });
+
+  return inFlightBatchJob;
+}
+
+async function runBatchJobOnce() {
   console.log("[scheduler] Running nightly batch job…");
   try {
     // All orgs that have at least one admin/owner member with an email
@@ -26,7 +52,8 @@ export async function runBatchJob() {
       FROM "organization" o
       JOIN "member" m ON m."organizationId" = o.id
       JOIN "user" u ON u.id = m."userId"
-      WHERE u.email IS NOT NULL
+      WHERE m.role IN ('owner', 'admin')
+      AND u.email IS NOT NULL
     `;
 
     let sent = 0;
@@ -70,7 +97,7 @@ async function tryBatchOrg(org: { id: string; name: string; slug: string }): Pro
 
   // Get all admin/owner emails for this org
   const adminRows = await Bun.sql`
-    SELECT u.email, u.name FROM "user" u
+    SELECT DISTINCT u.email, u.name FROM "user" u
     JOIN "member" m ON m."userId" = u.id
     WHERE m."organizationId" = ${org.id}
     AND m.role IN ('owner', 'admin')

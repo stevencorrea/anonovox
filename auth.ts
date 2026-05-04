@@ -5,8 +5,35 @@ import { organization } from "better-auth/plugins";
 import { ensureOrgMembership, handleEntraAccountCreated, handleEntraAccountUpdated } from "./org";
 import { sendVerificationEmail, sendInvitationEmail } from "./mailer";
 
+const APP_BASE_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+
+function getTrustedOrigins(): string[] {
+  const origins = new Set<string>([
+    `http://localhost:${process.env.PORT ?? 3000}`,
+    "http://localhost:3000",
+  ]);
+
+  const configured = [
+    APP_BASE_URL,
+    ...(process.env.ADDITIONAL_TRUSTED_ORIGINS ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ];
+
+  for (const value of configured) {
+    try {
+      origins.add(new URL(value).origin);
+    } catch {
+      console.warn("[auth] Ignoring invalid trusted origin:", value);
+    }
+  }
+
+  return [...origins];
+}
+
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  baseURL: APP_BASE_URL,
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
   }),
@@ -32,23 +59,16 @@ export const auth = betterAuth({
       await sendVerificationEmail(user.email, url);
     },
   },
-  trustedOrigins: [
-    `http://localhost:${process.env.PORT ?? 3000}`,
-    process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
-    "https://aliana-nonepiscopalian-dissidently.ngrok-free.dev",
-    "https://anonovox.onrender.com",
-    "https://anonovox.com",
-  ],
+  trustedOrigins: getTrustedOrigins(),
   plugins: [
     dash(),
     organization({
       creatorRole: "owner",
       sendInvitationEmail: async (data) => {
-        const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-        const acceptUrl = `${baseUrl}/api/auth/organization/accept-invitation?id=${data.invitation.id}`;
+        const acceptUrl = `${APP_BASE_URL}/accept-invitation?id=${data.invitation.id}`;
         await sendInvitationEmail(
           data.email,
-          data.inviter.name ?? data.inviter.email,
+          data.inviter.user.name ?? data.inviter.user.email,
           data.organization.name,
           acceptUrl,
         );
@@ -66,12 +86,20 @@ export const auth = betterAuth({
     account: {
       create: {
         after: async (account) => {
-          await handleEntraAccountCreated(account);
+          await handleEntraAccountCreated({
+            userId: account.userId,
+            providerId: account.providerId,
+            idToken: account.idToken,
+          });
         },
       },
       update: {
         after: async (account) => {
-          await handleEntraAccountUpdated(account);
+          await handleEntraAccountUpdated({
+            userId: account.userId,
+            providerId: account.providerId,
+            idToken: account.idToken,
+          });
         },
       },
     },

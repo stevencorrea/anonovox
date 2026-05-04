@@ -179,7 +179,9 @@ for NAME in \
   ENTRA_ADMIN_ROLE_IDS \
   SLACK_CLIENT_ID \
   SLACK_CLIENT_SECRET \
-  SLACK_SIGNING_SECRET; do
+  SLACK_SIGNING_SECRET \
+  TEAMS_APP_ID \
+  TEAMS_APP_SECRET; do
   create_secret "${NAME}" "PLACEHOLDER"
 done
 
@@ -229,5 +231,7 @@ echo "  4. After first deploy, update BETTER_AUTH_URL secret and Cloud Scheduler
 echo "     job URI with your Cloud Run URL (printed in the workflow summary)"
 echo "  5. Update your Slack app's OAuth redirect URL and slash command URL"
 echo "     to the Cloud Run URL"
+echo "  6. Update your Azure Bot messaging endpoint to the Cloud Run URL"
+echo "     (/api/teams/message) and download the Teams app package from Settings"
 echo ""
 echo "Done."

@@ -62,6 +62,11 @@ const teamsDisconnectBtn = document.getElementById("teams-disconnect-btn") as HT
 const teamsLinkForm = document.getElementById("teams-link-form") as HTMLFormElement;
 const teamsTenantInput = document.getElementById("teams-tenant-input") as HTMLInputElement;
 const teamsMsg = document.getElementById("teams-msg") as HTMLElement;
+const teamsRuntimeDetailsEl = document.getElementById("teams-runtime-details") as HTMLElement;
+const teamsRuntimeMissingEl = document.getElementById("teams-runtime-missing") as HTMLElement;
+const teamsAppIdEl = document.getElementById("teams-app-id") as HTMLElement;
+const teamsMessagingEndpointEl = document.getElementById("teams-messaging-endpoint") as HTMLElement;
+const teamsPackageLink = document.getElementById("teams-package-link") as HTMLAnchorElement;
 const ssoCard = document.getElementById("sso-card") as HTMLElement;
 const ssoTenantDisplay = document.getElementById("sso-tenant-display") as HTMLElement;
 const ssoTenantValue = document.getElementById("sso-tenant-value") as HTMLElement;
@@ -158,23 +163,48 @@ function render() {
   renameForm.style.display = isAdmin ? "flex" : "none";
 
   // Render members
-  membersBody.innerHTML = "";
+  membersBody.replaceChildren();
   for (const m of currentOrg.members ?? []) {
     const isSelf = m.userId === currentUserId;
     const isOwner = m.role === "owner";
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>
-        <div class="member-name">${escHtml(m.user?.name ?? "")}</div>
-        <div class="member-email">${escHtml(m.user?.email ?? "")}</div>
-      </td>
-      <td><span class="role-badge role-${m.role}">${m.role}</span></td>
-      <td class="member-joined">${formatDate(m.createdAt)}</td>
-      <td style="text-align:right">
-        ${isAdmin && !isSelf && !isOwner
-          ? `<button class="btn-remove" data-member-id="${m.id}" data-member-email="${escHtml(m.user?.email ?? "")}">Remove</button>`
-          : `<span class="member-no-action">—</span>`}
-      </td>`;
+    const identityCell = document.createElement("td");
+    const name = document.createElement("div");
+    name.className = "member-name";
+    name.textContent = m.user?.name ?? "";
+    const email = document.createElement("div");
+    email.className = "member-email";
+    email.textContent = m.user?.email ?? "";
+    identityCell.append(name, email);
+
+    const roleCell = document.createElement("td");
+    const roleBadge = document.createElement("span");
+    const safeRole = normalizeRole(m.role);
+    roleBadge.className = `role-badge role-${safeRole}`;
+    roleBadge.textContent = safeRole;
+    roleCell.appendChild(roleBadge);
+
+    const joinedCell = document.createElement("td");
+    joinedCell.className = "member-joined";
+    joinedCell.textContent = formatDate(m.createdAt);
+
+    const actionCell = document.createElement("td");
+    actionCell.style.textAlign = "right";
+    if (isAdmin && !isSelf && !isOwner) {
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "btn-remove";
+      removeBtn.textContent = "Remove";
+      removeBtn.dataset.memberId = m.id;
+      removeBtn.dataset.memberEmail = m.user?.email ?? "";
+      actionCell.appendChild(removeBtn);
+    } else {
+      const noAction = document.createElement("span");
+      noAction.className = "member-no-action";
+      noAction.textContent = "—";
+      actionCell.appendChild(noAction);
+    }
+
+    row.append(identityCell, roleCell, joinedCell, actionCell);
     membersBody.appendChild(row);
   }
   membersBody.querySelectorAll(".btn-remove").forEach((btn) => {
@@ -189,15 +219,28 @@ function render() {
   const pending = (currentOrg.invitations ?? []).filter((i) => i.status === "pending");
   if (pending.length > 0) {
     invitationsSection.style.display = "block";
-    invitationsList.innerHTML = "";
+    invitationsList.replaceChildren();
     for (const inv of pending) {
       const row = document.createElement("div");
       row.className = "invitation-row";
-      row.innerHTML = `
-        <span class="invitation-email">${escHtml(inv.email)}</span>
-        <span class="role-badge role-${inv.role ?? "member"}">${inv.role ?? "member"}</span>
-        <span class="invitation-expiry">Expires ${formatDate(inv.expiresAt)}</span>
-        ${isAdmin ? `<button class="btn-cancel-invite" data-invite-id="${inv.id}">Cancel</button>` : ""}`;
+      const email = document.createElement("span");
+      email.className = "invitation-email";
+      email.textContent = inv.email;
+      const role = document.createElement("span");
+      const safeRole = normalizeRole(inv.role);
+      role.className = `role-badge role-${safeRole}`;
+      role.textContent = safeRole;
+      const expiry = document.createElement("span");
+      expiry.className = "invitation-expiry";
+      expiry.textContent = `Expires ${formatDate(inv.expiresAt)}`;
+      row.append(email, role, expiry);
+      if (isAdmin) {
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn-cancel-invite";
+        cancelBtn.textContent = "Cancel";
+        cancelBtn.dataset.inviteId = inv.id;
+        row.appendChild(cancelBtn);
+      }
       invitationsList.appendChild(row);
     }
     invitationsSection.querySelectorAll(".btn-cancel-invite").forEach((btn) => {
@@ -313,12 +356,9 @@ function formatDate(iso: string): string {
   });
 }
 
-function escHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+function normalizeRole(role: string | null | undefined): "owner" | "admin" | "member" {
+  if (role === "owner" || role === "admin") return role;
+  return "member";
 }
 
 // ── Slack integration ─────────────────────────────────────────────────────
@@ -373,24 +413,57 @@ async function loadTeamsStatus() {
   teamsConnectedSsoEl.style.display = "none";
   teamsConnectedManualEl.style.display = "none";
   teamsDisconnectedEl.style.display = "none";
+  teamsRuntimeDetailsEl.style.display = "none";
+  teamsRuntimeMissingEl.style.display = "none";
   try {
     const res = await fetch("/api/teams/status");
     if (!res.ok) throw new Error("Failed");
-    const { connected, tenantId, source } = await res.json() as {
-      connected: boolean; tenantId: string | null; source: "sso" | "manual" | null;
+    const {
+      connected,
+      tenantId,
+      source,
+      configured,
+      appId,
+      messagingEndpoint,
+      packageUrl,
+    } = await res.json() as {
+      connected: boolean;
+      tenantId: string | null;
+      source: "sso" | "manual" | null;
+      configured: boolean;
+      appId: string | null;
+      messagingEndpoint: string | null;
+      packageUrl: string | null;
     };
-    renderTeamsStatus(connected, tenantId, source);
+    renderTeamsStatus(connected, tenantId, source, configured, appId, messagingEndpoint, packageUrl);
   } catch {
     teamsLoadingEl.style.display = "none";
     teamsDisconnectedEl.style.display = "block";
   }
 }
 
-function renderTeamsStatus(connected: boolean, tenantId: string | null, source: "sso" | "manual" | null) {
+function renderTeamsStatus(
+  connected: boolean,
+  tenantId: string | null,
+  source: "sso" | "manual" | null,
+  configured: boolean,
+  appId: string | null,
+  messagingEndpoint: string | null,
+  packageUrl: string | null,
+) {
   teamsLoadingEl.style.display = "none";
   teamsConnectedSsoEl.style.display = "none";
   teamsConnectedManualEl.style.display = "none";
   teamsDisconnectedEl.style.display = "none";
+  teamsRuntimeDetailsEl.style.display = configured ? "block" : "none";
+  teamsRuntimeMissingEl.style.display = configured ? "none" : "block";
+  teamsLinkForm.style.display = configured ? "block" : "none";
+
+  teamsAppIdEl.textContent = appId ?? "Not configured";
+  teamsMessagingEndpointEl.textContent = messagingEndpoint ?? "Not configured";
+  teamsPackageLink.href = packageUrl ?? "#";
+  teamsPackageLink.style.pointerEvents = configured && packageUrl ? "auto" : "none";
+  teamsPackageLink.style.opacity = configured && packageUrl ? "1" : "0.55";
 
   if (connected && source === "sso") {
     teamsTenantIdSsoEl.textContent = tenantId ?? "";
@@ -420,7 +493,7 @@ teamsLinkForm.addEventListener("submit", async (e) => {
       body: JSON.stringify({ tenantId }),
     });
     if (!res.ok) throw new Error("Failed");
-    renderTeamsStatus(true, tenantId, "manual");
+    await loadTeamsStatus();
     setMsg(teamsMsg, "Teams connected successfully.", "success");
     teamsTenantInput.value = "";
   } catch {
@@ -438,7 +511,7 @@ teamsDisconnectBtn.addEventListener("click", async () => {
   try {
     const res = await fetch("/api/teams", { method: "DELETE" });
     if (!res.ok) throw new Error("Failed");
-    renderTeamsStatus(false, null, null);
+    await loadTeamsStatus();
     setMsg(teamsMsg, "Teams disconnected.", "success");
   } catch {
     setMsg(teamsMsg, "Failed to disconnect. Please try again.", "error");

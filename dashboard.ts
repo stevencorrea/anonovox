@@ -116,26 +116,54 @@ function renderInsights(insights: InsightsResult | null, generated_at: string | 
   insightsEmpty.style.display = "none";
   insightsContent.style.display = "block";
 
-  themesEl.innerHTML = insights.themes
-    .map((t) => `<span class="theme-chip">${escHtml(t)}</span>`)
-    .join("");
+  themesEl.replaceChildren(
+    ...insights.themes.map((theme) => {
+      const chip = document.createElement("span");
+      chip.className = "theme-chip";
+      chip.textContent = theme;
+      return chip;
+    }),
+  );
 
   const { positive, neutral, negative } = insights.sentiment;
-  sentimentEl.innerHTML = `
-    <div class="sentiment-bar">
-      <div class="sentiment-seg sentiment-pos" style="width:${positive}%" title="Positive ${positive}%"></div>
-      <div class="sentiment-seg sentiment-neu" style="width:${neutral}%" title="Neutral ${neutral}%"></div>
-      <div class="sentiment-seg sentiment-neg" style="width:${negative}%" title="Negative ${negative}%"></div>
-    </div>
-    <div class="sentiment-legend">
-      <span><span class="legend-dot legend-pos"></span>Positive ${positive}%</span>
-      <span><span class="legend-dot legend-neu"></span>Neutral ${neutral}%</span>
-      <span><span class="legend-dot legend-neg"></span>Negative ${negative}%</span>
-    </div>`;
+  const sentimentBar = document.createElement("div");
+  sentimentBar.className = "sentiment-bar";
+  for (const [className, value, label] of [
+    ["sentiment-pos", positive, "Positive"],
+    ["sentiment-neu", neutral, "Neutral"],
+    ["sentiment-neg", negative, "Negative"],
+  ] as const) {
+    const segment = document.createElement("div");
+    segment.className = `sentiment-seg ${className}`;
+    segment.style.width = `${value}%`;
+    segment.title = `${label} ${value}%`;
+    sentimentBar.appendChild(segment);
+  }
 
-  quotesEl.innerHTML = insights.key_quotes
-    .map((q) => `<blockquote class="key-quote">"${escHtml(q)}"</blockquote>`)
-    .join("");
+  const sentimentLegend = document.createElement("div");
+  sentimentLegend.className = "sentiment-legend";
+  for (const [className, label, value] of [
+    ["legend-pos", "Positive", positive],
+    ["legend-neu", "Neutral", neutral],
+    ["legend-neg", "Negative", negative],
+  ] as const) {
+    const wrapper = document.createElement("span");
+    const dot = document.createElement("span");
+    dot.className = `legend-dot ${className}`;
+    wrapper.append(dot, `${label} ${value}%`);
+    sentimentLegend.appendChild(wrapper);
+  }
+
+  sentimentEl.replaceChildren(sentimentBar, sentimentLegend);
+
+  quotesEl.replaceChildren(
+    ...insights.key_quotes.map((quote) => {
+      const blockquote = document.createElement("blockquote");
+      blockquote.className = "key-quote";
+      blockquote.textContent = `"${quote}"`;
+      return blockquote;
+    }),
+  );
 
   summaryEl.textContent = insights.overall_summary;
 
@@ -147,7 +175,7 @@ function renderInsights(insights: InsightsResult | null, generated_at: string | 
 // ── Render feed ───────────────────────────────────────────────────────────────
 
 function renderFeed(items: FeedItem[], append: boolean) {
-  if (!append) feedList.innerHTML = "";
+  if (!append) feedList.replaceChildren();
 
   if (items.length === 0 && !append) {
     feedEmpty.style.display = "block";
@@ -162,9 +190,13 @@ function renderFeed(items: FeedItem[], append: boolean) {
   for (const item of items) {
     const el = document.createElement("div");
     el.className = "feed-item";
-    el.innerHTML = `
-      <div class="feed-content">${escHtml(item.content)}</div>
-      <div class="feed-meta">${relativeTime(item.created_at)}</div>`;
+    const content = document.createElement("div");
+    content.className = "feed-content";
+    content.textContent = item.content;
+    const meta = document.createElement("div");
+    meta.className = "feed-meta";
+    meta.textContent = relativeTime(item.created_at);
+    el.append(content, meta);
     feedList.appendChild(el);
   }
 
@@ -179,14 +211,23 @@ function renderResponses(responses: LeadershipResponse[]) {
     return;
   }
   responsesSection.style.display = "block";
-  responsesList.innerHTML = "";
+  responsesList.replaceChildren();
   for (const r of responses) {
     const el = document.createElement("div");
     el.className = "response-item";
-    el.innerHTML = `
-      ${r.period_label ? `<div class="response-period">${escHtml(r.period_label)}</div>` : ""}
-      <div class="response-content">${escHtml(r.content)}</div>
-      <div class="response-meta">${relativeTime(r.posted_at)}</div>`;
+    if (r.period_label) {
+      const period = document.createElement("div");
+      period.className = "response-period";
+      period.textContent = r.period_label;
+      el.appendChild(period);
+    }
+    const content = document.createElement("div");
+    content.className = "response-content";
+    content.textContent = r.content;
+    const meta = document.createElement("div");
+    meta.className = "response-meta";
+    meta.textContent = relativeTime(r.posted_at);
+    el.append(content, meta);
     responsesList.appendChild(el);
   }
 }
@@ -200,15 +241,21 @@ function renderDeliveries(deliveries: Delivery[]) {
     return;
   }
   deliveriesEmpty.style.display = "none";
-  deliveriesList.innerHTML = "";
+  deliveriesList.replaceChildren();
   for (const d of deliveries) {
     const el = document.createElement("div");
     el.className = "delivery-row";
     const badgeClass = d.status === "sent" ? "delivery-badge-sent" : "delivery-badge-failed";
-    el.innerHTML = `
-      <span class="delivery-date">${relativeTime(d.sent_at)}</span>
-      <span class="delivery-count">${d.feedback_count} submission${d.feedback_count !== 1 ? "s" : ""} · ${d.recipient_count} recipient${d.recipient_count !== 1 ? "s" : ""}</span>
-      <span class="delivery-badge ${badgeClass}">${d.status}</span>`;
+    const date = document.createElement("span");
+    date.className = "delivery-date";
+    date.textContent = relativeTime(d.sent_at);
+    const count = document.createElement("span");
+    count.className = "delivery-count";
+    count.textContent = `${d.feedback_count} submission${d.feedback_count !== 1 ? "s" : ""} · ${d.recipient_count} recipient${d.recipient_count !== 1 ? "s" : ""}`;
+    const badge = document.createElement("span");
+    badge.className = `delivery-badge ${badgeClass}`;
+    badge.textContent = d.status;
+    el.append(date, count, badge);
     deliveriesList.appendChild(el);
   }
 }
@@ -307,12 +354,4 @@ function relativeTime(iso: string): string {
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function escHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

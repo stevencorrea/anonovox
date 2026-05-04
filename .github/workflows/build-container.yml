@@ -77,6 +77,8 @@ jobs:
               SLACK_CLIENT_ID=SLACK_CLIENT_ID:latest,\
               SLACK_CLIENT_SECRET=SLACK_CLIENT_SECRET:latest,\
               SLACK_SIGNING_SECRET=SLACK_SIGNING_SECRET:latest,\
+              TEAMS_APP_ID=TEAMS_APP_ID:latest,\
+              TEAMS_APP_SECRET=TEAMS_APP_SECRET:latest,\
               SCHEDULER_SECRET=SCHEDULER_SECRET:latest"
 
       - name: Show service URL

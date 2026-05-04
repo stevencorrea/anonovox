@@ -1,6 +1,7 @@
 import homePage from "./index.html";
 import feedbackPage from "./feedback.html";
 import signinPage from "./signin.html";
+import acceptInvitationPage from "./accept-invitation.html";
 import pricingPage from "./pricing.html";
 import settingsPage from "./settings.html";
 import dashboardPage from "./dashboard.html";
@@ -26,10 +27,68 @@ import {
   saveTeamsTenant,
   deleteTeamsTenant,
   getTeamsConnectionByOrg,
+  getTeamsRuntimeConfig,
+  getNormalizedTeamsMessage,
+  buildTeamsAppPackage,
   type TeamsActivity,
 } from "./teams";
 import { getCachedInsights, refreshInsights } from "./insights";
 import { startScheduler, runBatchJob } from "./scheduler";
+
+const MAX_FEEDBACK_LENGTH = 4_000;
+const MAX_PERIOD_LABEL_LENGTH = 120;
+const MAX_FEED_LIMIT = 100;
+const ENTRA_TENANT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const APP_BASE_URL = process.env.BETTER_AUTH_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+
+function errorResponse(status: number, error: string) {
+  return Response.json({ error }, { status });
+}
+
+async function readJsonBody<T>(req: Request): Promise<T | null> {
+  try {
+    return (await req.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+function clampInteger(value: string | null, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(Math.trunc(parsed), min), max);
+}
+
+function readTrimmedString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function requireMaxLength(value: string, maxLength: number, fieldName: string): Response | null {
+  if (value.length > maxLength) {
+    return errorResponse(400, `${fieldName} must be ${maxLength} characters or fewer`);
+  }
+  return null;
+}
+
+function normalizeTenantId(value: unknown): string | null {
+  const trimmed = readTrimmedString(value);
+  return trimmed ? trimmed.toLowerCase() : null;
+}
+
+function isValidTenantId(tenantId: string): boolean {
+  return ENTRA_TENANT_ID_RE.test(tenantId);
+}
+
+function getClientIp(req: Request): string | null {
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0]?.trim().slice(0, 255) ?? null;
+  }
+
+  return req.headers.get("cf-connecting-ip")?.trim().slice(0, 255) ?? null;
+}
 
 await runMigrations();
 startScheduler();
@@ -39,6 +98,7 @@ const server = Bun.serve({
   routes: {
     "/": homePage,
     "/signin": signinPage,
+    "/accept-invitation": acceptInvitationPage,
     "/feedback": feedbackPage,
     "/pricing": pricingPage,
     "/settings": settingsPage,
@@ -48,6 +108,7 @@ const server = Bun.serve({
         const session = await auth.api.getSession({ headers: req.headers });
         if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
         const domain = session.user.email.split("@")[1];
+        if (!domain) return Response.json({ orgId: null, role: null });
         const org = await getOrgByDomain(domain);
         if (!org) return Response.json({ orgId: null, role: null });
         const rows = await Bun.sql`
@@ -66,8 +127,12 @@ const server = Bun.serve({
       POST: async (req) => {
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
-        const body = await req.json() as { tenantId?: string };
-        const tenantId = body.tenantId?.trim() || null;
+        const body = await readJsonBody<{ tenantId?: string | null }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+        const tenantId = body.tenantId === null ? null : normalizeTenantId(body.tenantId);
+        if (tenantId && !isValidTenantId(tenantId)) {
+          return errorResponse(400, "Valid Entra tenant ID required");
+        }
         await setOrgEntraTenant(guard.org.id, tenantId);
         return Response.json({ ok: true, entraTenantId: tenantId });
       },
@@ -78,8 +143,8 @@ const server = Bun.serve({
         if (guard instanceof Response) return guard;
         const { org } = guard;
         const url = new URL(req.url);
-        const offset = Number(url.searchParams.get("offset") ?? 0);
-        const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 100);
+        const offset = clampInteger(url.searchParams.get("offset"), 0, 0, Number.MAX_SAFE_INTEGER);
+        const limit = clampInteger(url.searchParams.get("limit"), 20, 1, MAX_FEED_LIMIT);
         const [items, countRows] = await Promise.all([
           Bun.sql`
             SELECT id, content, created_at FROM reporting.feedback_responses
@@ -97,10 +162,15 @@ const server = Bun.serve({
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
         const { org } = guard;
-        const cached = await getCachedInsights(org.id);
-        if (cached) return Response.json(cached);
-        const fresh = await refreshInsights(org.id, org.slug);
-        return Response.json(fresh ?? { insights: null, generated_at: null });
+        try {
+          const cached = await getCachedInsights(org.id);
+          if (cached) return Response.json(cached);
+          const fresh = await refreshInsights(org.id, org.slug);
+          return Response.json(fresh ?? { insights: null, generated_at: null });
+        } catch (err) {
+          console.error("Insights load error:", err);
+          return errorResponse(502, "Failed to generate insights");
+        }
       },
     },
     "/api/dashboard/insights/refresh": {
@@ -108,8 +178,13 @@ const server = Bun.serve({
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
         const { org } = guard;
-        const result = await refreshInsights(org.id, org.slug);
-        return Response.json(result ?? { insights: null, generated_at: null });
+        try {
+          const result = await refreshInsights(org.id, org.slug);
+          return Response.json(result ?? { insights: null, generated_at: null });
+        } catch (err) {
+          console.error("Insights refresh error:", err);
+          return errorResponse(502, "Failed to refresh insights");
+        }
       },
     },
     "/api/dashboard/respond": {
@@ -117,12 +192,20 @@ const server = Bun.serve({
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
         const { org, session } = guard;
-        const body = await req.json() as { content?: string; period_label?: string };
-        const content = body.content?.trim();
-        if (!content) return Response.json({ error: "Content required" }, { status: 400 });
+        const body = await readJsonBody<{ content?: string; period_label?: string | null }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+        const content = readTrimmedString(body.content);
+        if (!content) return errorResponse(400, "Content required");
+        const contentLengthError = requireMaxLength(content, MAX_FEEDBACK_LENGTH, "Content");
+        if (contentLengthError) return contentLengthError;
+        const periodLabel = readTrimmedString(body.period_label);
+        if (periodLabel) {
+          const labelLengthError = requireMaxLength(periodLabel, MAX_PERIOD_LABEL_LENGTH, "Period label");
+          if (labelLengthError) return labelLengthError;
+        }
         await Bun.sql`
           INSERT INTO reporting.leadership_responses (org_id, content, period_label, posted_by)
-          VALUES (${org.id}, ${content}, ${body.period_label ?? null}, ${session.user.id})
+          VALUES (${org.id}, ${content}, ${periodLabel}, ${session.user.id})
         `;
         return Response.json({ ok: true }, { status: 201 });
       },
@@ -159,24 +242,42 @@ const server = Bun.serve({
 
     "/api/teams/message": {
       POST: async (req) => {
-        if (!process.env.TEAMS_APP_ID && !process.env.MICROSOFT_CLIENT_ID) {
+        const teamsConfig = getTeamsRuntimeConfig();
+        if (!teamsConfig.configured || !teamsConfig.appId) {
           return new Response("Teams not configured", { status: 503 });
         }
         if (!(await verifyBotToken(req.headers.get("authorization")))) {
           return new Response("Unauthorized", { status: 401 });
         }
 
-        const activity = (await req.json()) as TeamsActivity;
+        const activity = await readJsonBody<TeamsActivity>(req);
+        if (!activity) return new Response("Invalid JSON body", { status: 400 });
 
-        // Only process inbound messages from Teams
-        if (activity.type !== "message" || activity.channelId !== "msteams") {
+        if (activity.channelId !== "msteams") {
           return new Response(null, { status: 200 });
         }
 
         const tenantId = activity.channelData?.tenant?.id;
         if (!tenantId) return new Response(null, { status: 200 });
 
-        const text = activity.text?.trim() ?? "";
+        if (activity.type === "installationUpdate" && activity.action === "add") {
+          await sendTeamsReply(
+            activity,
+            "Anonovox is ready. Send me a message anytime and I'll submit it anonymously.",
+          );
+          return new Response(null, { status: 200 });
+        }
+
+        // Only process user-authored inbound messages from Teams.
+        if (activity.type !== "message" || activity.from.id === activity.recipient.id) {
+          return new Response(null, { status: 200 });
+        }
+
+        if (activity.recipient.id !== teamsConfig.appId) {
+          return new Response(null, { status: 200 });
+        }
+
+        const text = getNormalizedTeamsMessage(activity);
         const org = await getOrgByTenantId(tenantId);
 
         if (!org) {
@@ -189,6 +290,14 @@ const server = Bun.serve({
 
         if (!text) {
           await sendTeamsReply(activity, "Send me your feedback and I'll submit it anonymously.");
+          return new Response(null, { status: 200 });
+        }
+
+        if (text.length > MAX_FEEDBACK_LENGTH) {
+          await sendTeamsReply(
+            activity,
+            `Please keep feedback under ${MAX_FEEDBACK_LENGTH} characters.`,
+          );
           return new Response(null, { status: 200 });
         }
 
@@ -212,10 +321,37 @@ const server = Bun.serve({
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
         const connection = await getTeamsConnectionByOrg(guard.org.id);
+        const runtime = getTeamsRuntimeConfig();
         return Response.json({
           connected: !!connection,
           tenantId: connection?.tenantId ?? null,
           source: connection?.source ?? null,
+          configured: runtime.configured,
+          appId: runtime.appId,
+          appName: runtime.appName,
+          messagingEndpoint: runtime.messagingEndpoint,
+          packageUrl: runtime.packageUrl,
+        });
+      },
+    },
+
+    "/api/teams/package": {
+      GET: async (req) => {
+        const guard = await requireOrgAdmin(req);
+        if (guard instanceof Response) return guard;
+        const runtime = getTeamsRuntimeConfig();
+        if (!runtime.configured) {
+          return new Response("Teams runtime not configured", { status: 503 });
+        }
+
+        const packageBytes = buildTeamsAppPackage();
+        return new Response(Buffer.from(packageBytes), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/zip",
+            "Content-Disposition": 'attachment; filename="anonovox-teams-app.zip"',
+            "Cache-Control": "no-store",
+          },
         });
       },
     },
@@ -224,9 +360,12 @@ const server = Bun.serve({
       POST: async (req) => {
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
-        const body = (await req.json()) as { tenantId?: string };
-        const tenantId = body.tenantId?.trim();
-        if (!tenantId) return Response.json({ error: "Tenant ID required" }, { status: 400 });
+        const body = await readJsonBody<{ tenantId?: string }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+        const tenantId = normalizeTenantId(body.tenantId);
+        if (!tenantId || !isValidTenantId(tenantId)) {
+          return errorResponse(400, "Valid tenant ID required");
+        }
         await saveTeamsTenant(guard.org.id, tenantId);
         return Response.json({ ok: true });
       },
@@ -248,7 +387,7 @@ const server = Bun.serve({
         if (req.headers.get("authorization") !== `Bearer ${secret}`) {
           return new Response("Unauthorized", { status: 401 });
         }
-        runBatchJob(); // fire-and-forget; Cloud Scheduler doesn't need to wait
+        void runBatchJob(); // fire-and-forget; Cloud Scheduler doesn't need to wait
         return Response.json({ ok: true });
       },
     },
@@ -268,10 +407,13 @@ const server = Bun.serve({
       GET: async (req) => {
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
+        if (!process.env.SLACK_CLIENT_ID || !process.env.SLACK_CLIENT_SECRET) {
+          return new Response("Slack not configured", { status: 503 });
+        }
         const state = signState(guard.org.id);
-        const redirectUri = `${process.env.BETTER_AUTH_URL}/api/slack/callback`;
+        const redirectUri = `${APP_BASE_URL}/api/slack/callback`;
         const url = new URL("https://slack.com/oauth/v2/authorize");
-        url.searchParams.set("client_id", process.env.SLACK_CLIENT_ID!);
+        url.searchParams.set("client_id", process.env.SLACK_CLIENT_ID);
         url.searchParams.set("scope", "commands");
         url.searchParams.set("redirect_uri", redirectUri);
         url.searchParams.set("state", state);
@@ -284,13 +426,16 @@ const server = Bun.serve({
         const url = new URL(req.url);
         const code = url.searchParams.get("code");
         const state = url.searchParams.get("state");
+        if (!process.env.SLACK_CLIENT_ID || !process.env.SLACK_CLIENT_SECRET) {
+          return Response.redirect("/settings?slack=error", 302);
+        }
 
         if (!code || !state) return Response.redirect("/settings?slack=error", 302);
 
         const orgId = verifyState(state);
         if (!orgId) return Response.redirect("/settings?slack=error", 302);
 
-        const redirectUri = `${process.env.BETTER_AUTH_URL}/api/slack/callback`;
+        const redirectUri = `${APP_BASE_URL}/api/slack/callback`;
         const credentials = Buffer.from(
           `${process.env.SLACK_CLIENT_ID}:${process.env.SLACK_CLIENT_SECRET}`,
         ).toString("base64");
@@ -304,18 +449,22 @@ const server = Bun.serve({
           body: new URLSearchParams({ code, redirect_uri: redirectUri }),
         });
 
+        if (!tokenRes.ok) return Response.redirect("/settings?slack=error", 302);
+
         const data = (await tokenRes.json()) as {
           ok: boolean;
           access_token?: string;
           team?: { id: string; name: string };
         };
 
-        if (!data.ok || !data.team?.id) return Response.redirect("/settings?slack=error", 302);
+        if (!data.ok || !data.team?.id || !data.access_token) {
+          return Response.redirect("/settings?slack=error", 302);
+        }
 
         const orgs = await Bun.sql`SELECT id FROM "organization" WHERE id = ${orgId} LIMIT 1`;
         if (!orgs[0]) return Response.redirect("/settings?slack=error", 302);
 
-        await saveSlackWorkspace(orgId, data.team.id, data.team.name, data.access_token ?? "", null);
+        await saveSlackWorkspace(orgId, data.team.id, data.team.name, data.access_token, null);
         return Response.redirect("/settings?slack=connected", 302);
       },
     },
@@ -343,6 +492,13 @@ const server = Bun.serve({
           return Response.json({
             response_type: "ephemeral",
             text: "Usage: `/feedback <your message>`",
+          });
+        }
+
+        if (text.length > MAX_FEEDBACK_LENGTH) {
+          return Response.json({
+            response_type: "ephemeral",
+            text: `Please keep feedback under ${MAX_FEEDBACK_LENGTH} characters.`,
           });
         }
 
@@ -384,7 +540,11 @@ const server = Bun.serve({
 
     "/api/feedback/review": {
       POST: async (req) => {
-        const body = (await req.json()) as { text?: string; risks?: AnalysisRisk[] };
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session) return errorResponse(401, "Unauthorized");
+
+        const body = await readJsonBody<{ text?: string; risks?: AnalysisRisk[] }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
         const text = body.text?.trim() ?? "";
         if (!text) {
           return Response.json(
@@ -392,6 +552,8 @@ const server = Bun.serve({
             { status: 200 },
           );
         }
+        const lengthError = requireMaxLength(text, MAX_FEEDBACK_LENGTH, "Feedback");
+        if (lengthError) return lengthError;
         try {
           const result = await reviewDraft(text, body.risks);
           return Response.json(result, { status: 200 });
@@ -406,40 +568,32 @@ const server = Bun.serve({
     },
     "/api/feedback/analyze": {
       POST: async (req) => {
-        const body = (await req.json()) as { text?: string };
+        const body = await readJsonBody<{ text?: string }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
         const text = body.text?.trim() ?? "";
+        const lengthError = requireMaxLength(text, MAX_FEEDBACK_LENGTH, "Feedback");
+        if (lengthError) return lengthError;
         const result = analyzeText(text);
         return Response.json(result, { status: 200 });
       },
     },
     "/api/feedback": {
-      // Our feedback endpoint taskes a POST behind a feature flag.
-      // When production is enabled, we require a session to be present,
-      // else, we allow anyone to submit feedback.
       POST: async (req) => {
-        const body = (await req.json()) as { feedback?: string };
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session) return errorResponse(401, "Unauthorized");
+
+        const body = await readJsonBody<{ feedback?: string }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
         const feedback = body.feedback?.trim();
+        if (!feedback) return errorResponse(400, "Feedback is required");
+        const lengthError = requireMaxLength(feedback, MAX_FEEDBACK_LENGTH, "Feedback");
+        if (lengthError) return lengthError;
 
-        if (!feedback) {
-          return Response.json(
-            { error: "Feedback is required" },
-            { status: 400 },
-          );
-        }
-
-        const disableAuth = process.env.DISABLE_AUTH === "true";
-        // When DISABLE_AUTH=true we skip fetching the session so anyone can submit feedback.
-        const session = disableAuth
-          ? null
-          : await auth.api.getSession({ headers: req.headers });
-        const userId = session?.user?.id ?? null;
-        const userEmail = session?.user?.email ?? null;
-        const orgDomain = userEmail ? userEmail.split("@")[1] : null;
-        const ipAddress =
-          req.headers.get("x-forwarded-for") ??
-          req.headers.get("cf-connecting-ip") ??
-          null;
-        const userAgent = req.headers.get("user-agent") ?? null;
+        const userId = session.user.id;
+        const userEmail = session.user.email;
+        const orgDomain = userEmail.split("@")[1] ?? null;
+        const ipAddress = getClientIp(req);
+        const userAgent = req.headers.get("user-agent")?.slice(0, 512) ?? null;
 
         // Insert response content into the reporting schema (no PII).
         const [{ id: responseId }] = await Bun.sql`
@@ -459,12 +613,6 @@ const server = Bun.serve({
     },
   },
   fetch(req) {
-    // Allow unauthenticated access to the feedback page (GET /feedback) by serving
-    // the feedback HTML directly. All other requests are delegated to the auth handler.
-    const url = new URL(req.url);
-    if (req.method === "GET" && url.pathname === "/feedback") {
-      return feedbackPage;
-    }
     return auth.handler(req);
   },
   // enable hot reload and console log output to browser in development mode

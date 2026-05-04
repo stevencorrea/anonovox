@@ -26,24 +26,39 @@ export async function verifySlackSignature(
 }
 
 // ── OAuth state signing (CSRF prevention) ─────────────────────────────────
-// state = `${orgId}:${hmac(orgId, BETTER_AUTH_SECRET)}`
+// state = `${orgId}:${issuedAtBase36}:${hmac(orgId:issuedAt, BETTER_AUTH_SECRET)}`
 
-function stateHmac(orgId: string): string {
-  return createHmac("sha256", process.env.BETTER_AUTH_SECRET!)
-    .update(orgId)
+const STATE_TTL_MS = 15 * 60 * 1000;
+
+function getStateSecret(): string {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET is required for Slack OAuth state signing");
+  }
+  return secret;
+}
+
+function stateHmac(orgId: string, issuedAt: string): string {
+  return createHmac("sha256", getStateSecret())
+    .update(`${orgId}:${issuedAt}`)
     .digest("hex");
 }
 
 export function signState(orgId: string): string {
-  return `${orgId}:${stateHmac(orgId)}`;
+  const issuedAt = Date.now().toString(36);
+  return `${orgId}:${issuedAt}:${stateHmac(orgId, issuedAt)}`;
 }
 
 export function verifyState(state: string): string | null {
-  const colonIdx = state.lastIndexOf(":");
-  if (colonIdx === -1) return null;
-  const orgId = state.slice(0, colonIdx);
-  const provided = state.slice(colonIdx + 1);
-  const expected = stateHmac(orgId);
+  const [orgId, issuedAt, provided] = state.split(":");
+  if (!orgId || !issuedAt || !provided) return null;
+  const issuedAtMs = Number.parseInt(issuedAt, 36);
+  if (!Number.isFinite(issuedAtMs)) return null;
+  if (Date.now() - issuedAtMs > STATE_TTL_MS || issuedAtMs > Date.now() + 60_000) {
+    return null;
+  }
+
+  const expected = stateHmac(orgId, issuedAt);
   if (provided.length !== expected.length) return null;
   if (!timingSafeEqual(Buffer.from(expected), Buffer.from(provided))) return null;
   return orgId;

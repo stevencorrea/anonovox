@@ -2,10 +2,18 @@ import type { AnalysisRisk } from "./analyze";
 import type { ReviewSuggestion } from "./review";
 import { authClient } from "./auth-client";
 
-// Show verification banner if user is signed in but email not verified
+// Auth guard — redirect to sign-in if no active session
 (async () => {
   const session = await authClient.getSession();
-  if (session?.data?.user && !session.data.user.emailVerified) {
+  const user = session?.data?.user;
+
+  if (!user) {
+    window.location.replace("/signin");
+    return;
+  }
+
+  // Show verification banner if email not yet verified
+  if (!user.emailVerified) {
     const banner = document.getElementById("verify-banner")!;
     banner.style.display = "flex";
     document.getElementById("resend-verify")!.addEventListener("click", async (e) => {
@@ -14,7 +22,7 @@ import { authClient } from "./auth-client";
       link.textContent = "Sending…";
       link.style.pointerEvents = "none";
       await authClient.sendVerificationEmail({
-        email: session.data.user.email,
+        email: user.email,
         callbackURL: "/feedback",
       });
       link.textContent = "Sent! Check your inbox.";

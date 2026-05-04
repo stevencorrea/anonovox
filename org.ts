@@ -12,14 +12,24 @@ const PERSONAL_DOMAINS = new Set([
   "protonmail.com",
 ]);
 
+function normalizeDomain(domain: string): string {
+  return domain.trim().toLowerCase();
+}
+
+function getEmailDomain(email: string): string | null {
+  const domain = email.split("@")[1];
+  return domain ? normalizeDomain(domain) : null;
+}
+
 function formatOrgName(domain: string): string {
-  const base = domain.split(".")[0];
+  const base = domain.split(".")[0] ?? domain;
   return (base.charAt(0).toUpperCase() + base.slice(1)).replace(/-/g, " ");
 }
 
 export async function getOrgByDomain(domain: string) {
+  const normalizedDomain = normalizeDomain(domain);
   const rows =
-    await Bun.sql`SELECT id, name, slug, "entraTenantId" FROM "organization" WHERE slug = ${domain} LIMIT 1`;
+    await Bun.sql`SELECT id, name, slug, "entraTenantId" FROM "organization" WHERE slug = ${normalizedDomain} LIMIT 1`;
   return (rows[0] as { id: string; name: string; slug: string; entraTenantId: string | null }) ?? null;
 }
 
@@ -27,7 +37,7 @@ export async function ensureOrgMembership(user: {
   id: string;
   email: string;
 }) {
-  const domain = user.email.split("@")[1];
+  const domain = getEmailDomain(user.email);
   if (!domain || PERSONAL_DOMAINS.has(domain)) return;
 
   const org = await getOrgByDomain(domain);
@@ -46,6 +56,18 @@ export async function ensureOrgMembership(user: {
     const existing =
       await Bun.sql`SELECT id FROM "member" WHERE "organizationId" = ${org.id} AND "userId" = ${user.id}`;
     if (!existing.length) {
+      // If a pending invitation exists for this user+org, don't auto-add them as 'member'.
+      // The correct role will be applied when they accept the invitation.
+      const pending = await Bun.sql`
+        SELECT id FROM "invitation"
+        WHERE email = ${user.email}
+          AND "organizationId" = ${org.id}
+          AND status = 'pending'
+          AND "expiresAt" > NOW()
+        LIMIT 1
+      `;
+      if (pending.length > 0) return;
+
       await Bun.sql`
         INSERT INTO "member" (id, "organizationId", "userId", role, "createdAt")
         VALUES (${crypto.randomUUID()}, ${org.id}, ${user.id}, 'member', NOW())
@@ -78,6 +100,24 @@ function isEntraAdmin(entraRoles: string[]): boolean {
   return entraRoles.some((r) => adminIds.includes(r));
 }
 
+function getClaimStrings(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 // Called from auth.ts account.create.after hook for Microsoft SSO sign-ins.
 // Decodes the idToken, determines the anonovox role from Entra claims, updates
 // the member table, and optionally stores the Entra tenant ID on the org.
@@ -89,12 +129,10 @@ export async function handleEntraAccountCreated(account: {
   if (account.providerId !== "microsoft" || !account.idToken) return;
 
   const claims = decodeJwtPayload(account.idToken);
-  const entraRoles = (claims.roles as string[] | undefined) ?? [];
-  const entraGroups = typeof claims.groups === "string"
-    ? claims.groups.split(",").map((g) => g.trim()).filter(Boolean)
-    : [];
+  const entraRoles = getClaimStrings(claims.roles);
+  const entraGroups = getClaimStrings(claims.groups);
   const allClaims = [...entraRoles, ...entraGroups];
-  const tid = claims.tid as string | undefined;
+  const tid = typeof claims.tid === "string" ? claims.tid : undefined;
 
   // Find the org this user belongs to.
   const memberRows = await Bun.sql`
@@ -155,23 +193,38 @@ export async function handleEntraAccountUpdated(account: {
   if (account.providerId !== "microsoft" || !account.idToken) return;
 
   const claims = decodeJwtPayload(account.idToken);
-  const entraRoles = (claims.roles as string[] | undefined) ?? [];
-  const entraGroups = typeof claims.groups === "string"
-    ? claims.groups.split(",").map((g) => g.trim()).filter(Boolean)
-    : [];
+  const entraRoles = getClaimStrings(claims.roles);
+  const entraGroups = getClaimStrings(claims.groups);
   const allClaims = [...entraRoles, ...entraGroups];
+  const tid = typeof claims.tid === "string" ? claims.tid : undefined;
 
   const memberRows = await Bun.sql`
-    SELECT m.id, m.role, m."organizationId"
+    SELECT m.id, m.role, m."organizationId", o."entraTenantId"
     FROM "member" m
+    JOIN "organization" o ON o.id = m."organizationId"
     WHERE m."userId" = ${account.userId}
     LIMIT 1
   `;
   if (!memberRows.length) return;
 
-  const { id: memberId, role: currentRole, organizationId: orgId } = memberRows[0] as {
-    id: string; role: string; organizationId: string;
+  const { id: memberId, role: currentRole, organizationId: orgId, entraTenantId: registeredTid } = memberRows[0] as {
+    id: string; role: string; organizationId: string; entraTenantId: string | null;
   };
+
+  if (registeredTid && tid && registeredTid !== tid) {
+    await logSsoEvent("sso_tenant_mismatch", account.userId, orgId, {
+      expected: registeredTid,
+      received: tid,
+    });
+    return;
+  }
+
+  if (tid && !registeredTid) {
+    await Bun.sql`
+      UPDATE "organization" SET "entraTenantId" = ${tid}
+      WHERE id = ${orgId}
+    `;
+  }
 
   if (currentRole !== "owner") {
     const targetRole = isEntraAdmin(allClaims) ? "admin" : "member";
@@ -211,14 +264,15 @@ export async function setOrgEntraTenant(orgId: string, tenantId: string | null) 
 }
 
 type AdminCheckResult =
-  | { session: Awaited<ReturnType<typeof auth.api.getSession>>; org: { id: string; name: string; slug: string; entraTenantId: string | null }; role: "owner" | "admin" }
+  | { session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>; org: { id: string; name: string; slug: string; entraTenantId: string | null }; role: "owner" | "admin" }
   | Response;
 
 export async function requireOrgAdmin(req: Request): Promise<AdminCheckResult> {
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const domain = session.user.email.split("@")[1];
+  const domain = getEmailDomain(session.user.email);
+  if (!domain) return Response.json({ error: "No organization found" }, { status: 403 });
   const org = await getOrgByDomain(domain);
   if (!org) return Response.json({ error: "No organization found" }, { status: 403 });
 

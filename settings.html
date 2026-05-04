@@ -455,6 +455,17 @@
           <div style="flex:1;min-width:200px">
             <div style="font-size:0.875rem;font-weight:500;color:var(--text-primary);margin-bottom:0.25rem">Microsoft Teams</div>
             <div id="teams-loading" style="font-size:0.82rem;color:var(--text-tertiary)">Loading…</div>
+            <div id="teams-runtime-details" style="display:none;margin:0.85rem 0 1rem;padding:0.75rem;background:var(--surface-alt);border-radius:0.5rem;border:1px solid var(--border-light)">
+              <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:0.55rem">Bot configuration</div>
+              <div style="display:grid;gap:0.45rem;font-size:0.8rem;color:var(--text-secondary)">
+                <div>Bot App ID: <code id="teams-app-id" style="font-family:var(--ff-mono);font-size:0.78rem"></code></div>
+                <div>Messaging endpoint: <code id="teams-messaging-endpoint" style="font-family:var(--ff-mono);font-size:0.78rem"></code></div>
+              </div>
+              <a id="teams-package-link" href="#" class="btn-primary btn-small" style="margin-top:0.85rem;display:inline-flex">Download Teams app package</a>
+            </div>
+            <div id="teams-runtime-missing" style="display:none;margin:0.85rem 0 1rem;padding:0.75rem;background:rgba(198, 83, 83, 0.08);border-radius:0.5rem;border:1px solid rgba(198, 83, 83, 0.18);font-size:0.8rem;color:var(--text-secondary);line-height:1.6">
+              Set <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_ID</code>, <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_SECRET</code>, and a public <code style="font-family:var(--ff-mono);font-size:0.78rem">BETTER_AUTH_URL</code> to enable the Teams bot and app package download.
+            </div>
 
             <!-- Connected via SSO (read-only — managed through Enterprise SSO card) -->
             <div id="teams-connected-sso" style="display:none">
@@ -496,10 +507,10 @@
                 <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:0.5rem">Setup instructions</div>
                 <ol style="font-size:0.8rem;color:var(--text-secondary);line-height:1.8;margin:0;padding-left:1.25rem">
                   <li>In <strong>Azure Portal</strong>, create an <strong>Azure Bot</strong> resource and note its App ID and Secret.</li>
-                  <li>Set <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_ID</code> and <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_SECRET</code> in your environment.</li>
-                  <li>Set the bot's messaging endpoint to <code style="font-family:var(--ff-mono);font-size:0.78rem">https://your-domain/api/teams/message</code>.</li>
-                  <li>Enable the <strong>Microsoft Teams</strong> channel on the bot.</li>
-                  <li>Find your Tenant ID in <strong>Azure Portal → Azure Active Directory → Overview</strong> and enter it above.</li>
+                  <li>Set <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_ID</code> and <code style="font-family:var(--ff-mono);font-size:0.78rem">TEAMS_APP_SECRET</code> on the server, then restart the app.</li>
+                  <li>Use the exact messaging endpoint shown above for the bot configuration.</li>
+                  <li>Enable the <strong>Microsoft Teams</strong> channel on the bot, then download the app package from this page and upload it in Teams.</li>
+                  <li>Find your Tenant ID in <strong>Azure Portal → Azure Active Directory → Overview</strong> and enter it above, or connect through Microsoft SSO below.</li>
                 </ol>
               </div>
             </div>

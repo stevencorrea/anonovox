@@ -22,10 +22,11 @@ describe("analyzeText", () => {
     test("detects email address", () => {
       const result = analyzeText("Contact me at john@example.com for details");
       expect(result.risks).toHaveLength(1);
-      expect(result.risks[0].type).toBe("email");
-      expect(result.risks[0].matchedText).toBe("john@example.com");
-      expect(result.risks[0].replacement).toBe("[EMAIL]");
-      expect(result.risks[0].confidence).toBe("high");
+      const [risk] = result.risks;
+      expect(risk!.type).toBe("email");
+      expect(risk!.matchedText).toBe("john@example.com");
+      expect(risk!.replacement).toBe("[EMAIL]");
+      expect(risk!.confidence).toBe("high");
     });
 
     test("detects multiple emails", () => {
@@ -40,8 +41,9 @@ describe("analyzeText", () => {
       const result = analyzeText("Call me at 555-123-4567");
       const phones = result.risks.filter((r) => r.type === "phone");
       expect(phones).toHaveLength(1);
-      expect(phones[0].matchedText).toBe("555-123-4567");
-      expect(phones[0].replacement).toBe("[PHONE]");
+      const [phone] = phones;
+      expect(phone!.matchedText).toBe("555-123-4567");
+      expect(phone!.replacement).toBe("[PHONE]");
     });
 
     test("detects phone with parens", () => {
@@ -68,7 +70,7 @@ describe("analyzeText", () => {
       const result = analyzeText("My employee ID is EMP-12345");
       const ids = result.risks.filter((r) => r.type === "identifier");
       expect(ids).toHaveLength(1);
-      expect(ids[0].replacement).toBe("[ID]");
+      expect(ids[0]!.replacement).toBe("[ID]");
     });
 
     test("detects #12345 format", () => {
@@ -89,7 +91,7 @@ describe("analyzeText", () => {
       const result = analyzeText("This happened on 03/15/2024");
       const dates = result.risks.filter((r) => r.type === "date");
       expect(dates).toHaveLength(1);
-      expect(dates[0].replacement).toBe("[DATE]");
+      expect(dates[0]!.replacement).toBe("[DATE]");
     });
 
     test("detects ISO date", () => {
@@ -102,7 +104,7 @@ describe("analyzeText", () => {
       const result = analyzeText("Since March 15, 2024 things got worse");
       const dates = result.risks.filter((r) => r.type === "date");
       expect(dates).toHaveLength(1);
-      expect(dates[0].matchedText).toBe("March 15, 2024");
+      expect(dates[0]!.matchedText).toBe("March 15, 2024");
     });
 
     test("detects abbreviated month date", () => {
@@ -117,7 +119,7 @@ describe("analyzeText", () => {
       const result = analyzeText("The engineering team is struggling");
       const teams = result.risks.filter((r) => r.type === "team");
       expect(teams).toHaveLength(1);
-      expect(teams[0].replacement).toBe("[TEAM]");
+      expect(teams[0]!.replacement).toBe("[TEAM]");
     });
 
     test("detects HR", () => {
@@ -138,7 +140,7 @@ describe("analyzeText", () => {
       const result = analyzeText("I work in Building A");
       const locs = result.risks.filter((r) => r.type === "location");
       expect(locs).toHaveLength(1);
-      expect(locs[0].replacement).toBe("[LOCATION]");
+      expect(locs[0]!.replacement).toBe("[LOCATION]");
     });
 
     test("detects floor reference", () => {
@@ -159,15 +161,15 @@ describe("analyzeText", () => {
       const result = analyzeText("I told Sarah Johnson about this issue.");
       const names = result.risks.filter((r) => r.type === "name");
       expect(names).toHaveLength(1);
-      expect(names[0].matchedText).toBe("Sarah Johnson");
-      expect(names[0].replacement).toBe("[NAME]");
+      expect(names[0]!.matchedText).toBe("Sarah Johnson");
+      expect(names[0]!.replacement).toBe("[NAME]");
     });
 
     test("detects name after preposition", () => {
       const result = analyzeText("The report was filed by Michael Chen last week.");
       const names = result.risks.filter((r) => r.type === "name");
       expect(names).toHaveLength(1);
-      expect(names[0].matchedText).toBe("Michael Chen");
+      expect(names[0]!.matchedText).toBe("Michael Chen");
     });
 
     test("does not flag common words", () => {
@@ -192,8 +194,8 @@ describe("analyzeText", () => {
       const text = "Email john@a.com and call 555-123-4567 today";
       const result = analyzeText(text);
       for (let i = 1; i < result.risks.length; i++) {
-        expect(result.risks[i].startIndex).toBeGreaterThanOrEqual(
-          result.risks[i - 1].startIndex,
+        expect(result.risks[i]!.startIndex).toBeGreaterThanOrEqual(
+          result.risks[i - 1]!.startIndex,
         );
       }
     });
@@ -204,7 +206,7 @@ describe("analyzeText", () => {
       const text = "Send to alice@example.com please";
       const result = analyzeText(text);
       expect(result.risks).toHaveLength(1);
-      const risk = result.risks[0];
+      const risk = result.risks[0]!;
       expect(text.slice(risk.startIndex, risk.endIndex)).toBe(
         "alice@example.com",
       );

@@ -2,6 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { AnalysisRisk } from "./analyze";
 
 const client = new Anthropic();
+const VALID_CATEGORIES = new Set<ReviewSuggestion["category"]>([
+  "tone",
+  "clarity",
+  "actionability",
+  "specificity",
+  "professionalism",
+  "anonymization",
+]);
 
 export interface ReviewSuggestion {
   category:
@@ -20,6 +28,44 @@ export interface ReviewResult {
   suggestions: ReviewSuggestion[];
   overall: string;
   source: "llm";
+}
+
+function fallbackReview(overall = "Draft review is unavailable right now."): ReviewResult {
+  return { suggestions: [], overall, source: "llm" };
+}
+
+function normalizeReviewResult(value: unknown): ReviewResult {
+  const parsed = value as {
+    suggestions?: Array<Partial<ReviewSuggestion>>;
+    overall?: unknown;
+  };
+
+  const suggestions = Array.isArray(parsed?.suggestions)
+    ? parsed.suggestions.flatMap((suggestion) => {
+      if (
+        !suggestion
+        || typeof suggestion.original !== "string"
+        || typeof suggestion.suggestion !== "string"
+        || typeof suggestion.explanation !== "string"
+        || !VALID_CATEGORIES.has(suggestion.category as ReviewSuggestion["category"])
+      ) {
+        return [];
+      }
+
+      return [{
+        category: suggestion.category as ReviewSuggestion["category"],
+        original: suggestion.original.trim(),
+        suggestion: suggestion.suggestion.trim(),
+        explanation: suggestion.explanation.trim(),
+      }];
+    }).slice(0, 4)
+    : [];
+
+  return {
+    suggestions,
+    overall: typeof parsed?.overall === "string" ? parsed.overall.trim() : "",
+    source: "llm",
+  };
 }
 
 const SYSTEM_PROMPT = `You are an expert writing coach helping employees craft anonymous feedback for leadership. Your job is to review their draft and suggest improvements around tone, clarity, actionability, and professionalism.
@@ -46,6 +92,10 @@ Respond with ONLY valid JSON matching this exact schema:
 }`;
 
 export async function reviewDraft(text: string, risks?: AnalysisRisk[]): Promise<ReviewResult> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return fallbackReview();
+  }
+
   const risksContext = risks?.length
     ? `\n\nAlready flagged by heuristics (don't repeat these): ${risks.map((r) => `"${r.matchedText}" (${r.type})`).join(", ")}. Focus on implicit risks the list above may miss.`
     : "";
@@ -64,19 +114,17 @@ export async function reviewDraft(text: string, risks?: AnalysisRisk[]): Promise
   });
 
   const content = message.content[0];
+  if (!content) {
+    return { suggestions: [], overall: "Unable to review.", source: "llm" };
+  }
   if (content.type !== "text") {
     return { suggestions: [], overall: "Unable to review.", source: "llm" };
   }
 
   const raw = content.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-  const parsed = JSON.parse(raw) as {
-    suggestions: ReviewSuggestion[];
-    overall: string;
-  };
-
-  return {
-    suggestions: parsed.suggestions,
-    overall: parsed.overall,
-    source: "llm",
-  };
+  try {
+    return normalizeReviewResult(JSON.parse(raw));
+  } catch {
+    return fallbackReview("Draft review completed, but the response could not be parsed.");
+  }
 }

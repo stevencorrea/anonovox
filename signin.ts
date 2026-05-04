@@ -17,22 +17,64 @@ const passwordInput = document.getElementById("password") as HTMLInputElement;
 const submitBtn    = document.getElementById("submit-btn") as HTMLButtonElement;
 const messageEl    = document.getElementById("message")!;
 
+function renderTogglePrompt(prompt: string, buttonLabel: string) {
+  const toggleBtn = document.createElement("button");
+  toggleBtn.className = "toggle-btn";
+  toggleBtn.id = "toggle-btn";
+  toggleBtn.type = "button";
+  toggleBtn.textContent = buttonLabel;
+  toggleBtn.addEventListener("click", () => {
+    setMode(mode === "signin" ? "signup" : "signin");
+  });
+  toggleText.replaceChildren(prompt, " ", toggleBtn);
+}
+
+function renderMicrosoftButton() {
+  microsoftBtn.replaceChildren(
+    createMicrosoftIcon(),
+    document.createTextNode(" Sign in with Microsoft"),
+  );
+}
+
+function createMicrosoftIcon(): SVGSVGElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("viewBox", "0 0 21 21");
+  svg.setAttribute("fill", "none");
+
+  for (const [x, y, fill] of [
+    ["1", "1", "#F25022"],
+    ["11", "1", "#7FBA00"],
+    ["1", "11", "#00A4EF"],
+    ["11", "11", "#FFB900"],
+  ] as const) {
+    const rect = document.createElementNS(ns, "rect");
+    rect.setAttribute("x", x);
+    rect.setAttribute("y", y);
+    rect.setAttribute("width", "9");
+    rect.setAttribute("height", "9");
+    rect.setAttribute("fill", fill);
+    svg.appendChild(rect);
+  }
+
+  return svg;
+}
+
 function setMode(m: Mode) {
   mode = m;
   if (mode === "signin") {
     formTitle.textContent    = "Welcome back.";
     formSubtitle.textContent = "Sign in to submit and view feedback.";
     submitLabel.textContent  = "Sign in";
-    toggleText.innerHTML     = `No account? <button class="toggle-btn" id="toggle-btn">Create one.</button>`;
+    renderTogglePrompt("No account?", "Create one.");
   } else {
     formTitle.textContent    = "Create your account.";
     formSubtitle.textContent = "Your email domain identifies your organization.";
     submitLabel.textContent  = "Create account";
-    toggleText.innerHTML     = `Already have one? <button class="toggle-btn" id="toggle-btn">Sign in.</button>`;
+    renderTogglePrompt("Already have one?", "Sign in.");
   }
-  document.getElementById("toggle-btn")!.addEventListener("click", () => {
-    setMode(mode === "signin" ? "signup" : "signin");
-  });
   hideMessage();
 }
 
@@ -62,20 +104,27 @@ emailInput.addEventListener("input", () => {
   }
 });
 
+// Only allow same-origin redirects (must start with /)
+function safeRedirect(): string {
+  const redirect = new URLSearchParams(location.search).get("redirect") ?? "";
+  return redirect.startsWith("/") ? redirect : "/feedback";
+}
+
 const microsoftBtn = document.getElementById("microsoft-btn") as HTMLButtonElement;
+renderMicrosoftButton();
 microsoftBtn.addEventListener("click", async () => {
   microsoftBtn.disabled = true;
   microsoftBtn.textContent = "Redirecting…";
   hideMessage();
   const { data, error } = await authClient.signIn.social({
     provider: "microsoft",
-    callbackURL: "/feedback",
+    callbackURL: safeRedirect(),
     errorCallbackURL: "/signin",
   });
   if (error || !data?.url) {
     showMessage(error?.message ?? "Microsoft sign-in unavailable.", "error");
     microsoftBtn.disabled = false;
-    microsoftBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg> Sign in with Microsoft`;
+    renderMicrosoftButton();
   }
 });
 
@@ -94,16 +143,16 @@ form.addEventListener("submit", async (e) => {
       showMessage(error.message ?? "Sign in failed. Please try again.", "error");
       submitBtn.disabled = false;
     } else {
-      window.location.href = "/feedback";
+      window.location.href = safeRedirect();
     }
   } else {
-    const name = email.split("@")[0];
+    const name = email.split("@")[0] ?? email;
     const { error } = await authClient.signUp.email({ email, password, name });
     if (error) {
       showMessage(error.message ?? "Sign up failed. Please try again.", "error");
       submitBtn.disabled = false;
     } else {
-      window.location.href = "/feedback";
+      window.location.href = safeRedirect();
     }
   }
 });
