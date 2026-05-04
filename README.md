@@ -14,30 +14,36 @@ The app is built with Bun, Better Auth, and Postgres.
 bun install
 ```
 
-2. Make sure `.env` exists in the project root and set at least:
+2. Create your local env file:
+
+```sh
+cp .env.example .env
+```
+
+3. Edit `.env` and set at least:
 
 ```env
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/anonovox
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/anonovox
 BETTER_AUTH_SECRET=replace-with-a-random-secret
 BETTER_AUTH_URL=http://localhost:3000
 ```
 
-3. Start the local stack:
+4. Start the local stack:
 
 ```sh
 docker compose up --build
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000)
+5. Open [http://localhost:3000](http://localhost:3000)
 
-5. Useful checks:
+6. Useful checks:
 
 ```sh
 bun run typecheck
 bun test
 ```
 
-The Docker compose stack runs Postgres, Jaeger, and the Bun app with hot reload. Database setup is automatic on startup via [`src/server/migrate.ts`](/Users/steven/Documents/anonovox/src/server/migrate.ts).
+The Docker compose stack runs Postgres, Jaeger, and the Bun app with hot reload. Database setup is automatic on startup via [`src/server/migrate.ts`](/Users/steven/Documents/anonovox/src/server/migrate.ts). The committed [`.env.example`](/Users/steven/Documents/anonovox/.env.example) includes placeholders for every supported integration.
 
 **Local Workflow**
 - Sign up at `/signin`
