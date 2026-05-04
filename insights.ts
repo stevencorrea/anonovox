@@ -16,7 +16,16 @@ function normalizePercent(value: unknown): number {
 }
 
 function normalizeInsightsResult(value: unknown): InsightsResult {
-  const parsed = value as {
+  let source = value;
+  if (typeof value === "string") {
+    try {
+      source = JSON.parse(value) as unknown;
+    } catch {
+      source = {};
+    }
+  }
+
+  const parsed = source as {
     themes?: unknown;
     sentiment?: { positive?: unknown; neutral?: unknown; negative?: unknown };
     key_quotes?: unknown;
@@ -77,7 +86,7 @@ export async function getCachedInsights(orgId: string): Promise<{ insights: Insi
   const row = rows[0];
   const age = Date.now() - new Date(row.generated_at).getTime();
   if (age > CACHE_TTL_MS) return null;
-  return { insights: row.content as InsightsResult, generated_at: row.generated_at };
+  return { insights: normalizeInsightsResult(row.content), generated_at: row.generated_at };
 }
 
 export async function refreshInsights(orgId: string, orgDomain: string): Promise<{ insights: InsightsResult; generated_at: string } | null> {

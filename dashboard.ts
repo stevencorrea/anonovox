@@ -6,6 +6,16 @@ type InsightsResult = {
   key_quotes: string[];
   overall_summary: string;
 };
+type StructuredPollSummary = {
+  id: string;
+  question: string;
+  status: "active" | "closed";
+  created_at: string;
+  closed_at: string | null;
+  totalResponses: number;
+  breakdown: Array<{ id: string; label: string; count: number; percentage: number }>;
+  notes: Array<{ id: string; comment: string; created_at: string }>;
+};
 type FeedItem = { id: string; content: string; created_at: string };
 type LeadershipResponse = { id: string; content: string; period_label: string | null; posted_at: string };
 type Delivery = { id: string; recipient_count: number; feedback_count: number; status: string; error: string | null; sent_at: string };
@@ -16,6 +26,14 @@ const loadingEl = document.getElementById("dashboard-loading") as HTMLElement;
 const errorEl = document.getElementById("dashboard-error") as HTMLElement;
 const accessDeniedEl = document.getElementById("dashboard-access-denied") as HTMLElement;
 const contentEl = document.getElementById("dashboard-content") as HTMLElement;
+const overviewFeedbackCountEl = document.getElementById("overview-feedback-count") as HTMLElement;
+const overviewFeedbackDetailEl = document.getElementById("overview-feedback-detail") as HTMLElement;
+const overviewNegativeSentimentEl = document.getElementById("overview-negative-sentiment") as HTMLElement;
+const overviewSentimentDetailEl = document.getElementById("overview-sentiment-detail") as HTMLElement;
+const overviewPollCountEl = document.getElementById("overview-poll-count") as HTMLElement;
+const overviewPollDetailEl = document.getElementById("overview-poll-detail") as HTMLElement;
+const overviewResponseCountEl = document.getElementById("overview-response-count") as HTMLElement;
+const overviewResponseDetailEl = document.getElementById("overview-response-detail") as HTMLElement;
 
 const insightsLoading = document.getElementById("insights-loading") as HTMLElement;
 const insightsContent = document.getElementById("insights-content") as HTMLElement;
@@ -26,6 +44,22 @@ const quotesEl = document.getElementById("insights-quotes") as HTMLElement;
 const summaryEl = document.getElementById("insights-summary") as HTMLElement;
 const generatedAtEl = document.getElementById("insights-generated-at") as HTMLElement;
 const refreshBtn = document.getElementById("refresh-insights-btn") as HTMLButtonElement;
+
+const pollLoadingEl = document.getElementById("poll-loading") as HTMLElement;
+const pollEmptyEl = document.getElementById("poll-empty") as HTMLElement;
+const pollViewEl = document.getElementById("poll-view") as HTMLElement;
+const pollQuestionEl = document.getElementById("poll-question") as HTMLElement;
+const pollStatusEl = document.getElementById("poll-status") as HTMLElement;
+const pollResponseCountEl = document.getElementById("poll-response-count") as HTMLElement;
+const pollBreakdownEl = document.getElementById("poll-breakdown") as HTMLElement;
+const pollNotesEl = document.getElementById("poll-notes") as HTMLElement;
+const pollCloseBtn = document.getElementById("poll-close-btn") as HTMLButtonElement;
+const pollDeleteBtn = document.getElementById("poll-delete-btn") as HTMLButtonElement;
+const pollBuilderForm = document.getElementById("poll-builder-form") as HTMLFormElement;
+const pollBuilderQuestion = document.getElementById("poll-builder-question") as HTMLTextAreaElement;
+const pollBuilderOptions = document.getElementById("poll-builder-options") as HTMLTextAreaElement;
+const pollBuilderSubmit = document.getElementById("poll-builder-submit") as HTMLButtonElement;
+const pollMsg = document.getElementById("poll-msg") as HTMLElement;
 
 const respondForm = document.getElementById("respond-form") as HTMLFormElement;
 const respondContent = document.getElementById("respond-content") as HTMLTextAreaElement;
@@ -47,6 +81,9 @@ const deliveriesEmpty = document.getElementById("deliveries-empty") as HTMLEleme
 
 let currentOffset = 0;
 let totalFeedItems = 0;
+let currentPoll: StructuredPollSummary | null = null;
+let currentInsights: InsightsResult | null = null;
+let currentResponses: LeadershipResponse[] = [];
 const PAGE_SIZE = 20;
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
@@ -71,26 +108,31 @@ const PAGE_SIZE = 20;
   }
 
   try {
-    const [insightsRes, feedRes, responsesRes, deliveriesRes] = await Promise.all([
+    const [insightsRes, pollRes, feedRes, responsesRes, deliveriesRes] = await Promise.all([
       fetch("/api/dashboard/insights"),
+      fetch("/api/dashboard/poll"),
       fetch(`/api/dashboard/feed?offset=0&limit=${PAGE_SIZE}`),
       fetch("/api/dashboard/responses"),
       fetch("/api/dashboard/deliveries"),
     ]);
 
-    if (!insightsRes.ok || !feedRes.ok || !responsesRes.ok || !deliveriesRes.ok) {
+    if (!insightsRes.ok || !pollRes.ok || !feedRes.ok || !responsesRes.ok || !deliveriesRes.ok) {
       throw new Error("Failed to load dashboard data");
     }
 
     const insightsData = await insightsRes.json() as { insights: InsightsResult | null; generated_at: string | null };
+    const pollData = await pollRes.json() as { poll: StructuredPollSummary | null };
     const feedData = await feedRes.json() as { items: FeedItem[]; total: number };
     const responsesData = await responsesRes.json() as { responses: LeadershipResponse[] };
     const deliveriesData = await deliveriesRes.json() as { deliveries: Delivery[] };
 
     totalFeedItems = feedData.total;
     currentOffset = feedData.items.length;
+    currentResponses = responsesData.responses;
 
+    renderExecutiveOverview(feedData.total, insightsData.insights, pollData.poll, responsesData.responses);
     renderInsights(insightsData.insights, insightsData.generated_at);
+    renderPoll(pollData.poll);
     renderFeed(feedData.items, false);
     renderResponses(responsesData.responses);
     renderDeliveries(deliveriesData.deliveries);
@@ -105,7 +147,41 @@ const PAGE_SIZE = 20;
 
 // ── Render insights ───────────────────────────────────────────────────────────
 
+function renderExecutiveOverview(
+  feedbackCount: number,
+  insights: InsightsResult | null,
+  poll: StructuredPollSummary | null,
+  responses: LeadershipResponse[],
+) {
+  overviewFeedbackCountEl.textContent = String(feedbackCount);
+  overviewFeedbackDetailEl.textContent =
+    feedbackCount > 0
+      ? `Latest signal spans ${feedbackCount} anonymized submission${feedbackCount !== 1 ? "s" : ""}.`
+      : "No feedback captured yet.";
+
+  const negative = insights?.sentiment.negative ?? 0;
+  overviewNegativeSentimentEl.textContent = `${negative}%`;
+  overviewSentimentDetailEl.textContent = insights
+    ? negative >= 40
+      ? "High friction signal. Leaders should review workload, clarity, and trust themes first."
+      : "Current AI read is mixed-to-stable; use quotes and themes for nuance."
+    : "AI analysis will summarize team sentiment here.";
+
+  overviewPollCountEl.textContent = String(poll?.totalResponses ?? 0);
+  overviewPollDetailEl.textContent = poll
+    ? `${poll.status === "active" ? "Active" : "Latest"} poll: ${poll.question}`
+    : "No structured poll is active.";
+
+  overviewResponseCountEl.textContent = String(responses.length);
+  const latestResponse = responses[0];
+  overviewResponseDetailEl.textContent = responses.length > 0
+    ? `Most recent response ${relativeTime(latestResponse?.posted_at ?? new Date().toISOString())}.`
+    : "No leadership responses posted yet.";
+}
+
 function renderInsights(insights: InsightsResult | null, generated_at: string | null) {
+  currentInsights = insights;
+  renderExecutiveOverview(totalFeedItems, insights, currentPoll, currentResponses);
   insightsLoading.style.display = "none";
   if (!insights) {
     insightsEmpty.style.display = "block";
@@ -172,9 +248,85 @@ function renderInsights(insights: InsightsResult | null, generated_at: string | 
   }
 }
 
+function renderPoll(poll: StructuredPollSummary | null) {
+  currentPoll = poll;
+  renderExecutiveOverview(totalFeedItems, currentInsights, poll, currentResponses);
+  pollLoadingEl.style.display = "none";
+  pollEmptyEl.style.display = poll ? "none" : "block";
+  pollViewEl.style.display = poll ? "block" : "none";
+
+  const hasActivePoll = poll?.status === "active";
+  pollBuilderForm.style.display = hasActivePoll ? "none" : "block";
+
+  if (!poll) {
+    pollBreakdownEl.replaceChildren();
+    pollNotesEl.replaceChildren();
+    pollNotesEl.style.display = "none";
+    return;
+  }
+
+  pollQuestionEl.textContent = poll.question;
+  pollStatusEl.textContent = poll.status;
+  pollStatusEl.className = `poll-status-badge ${poll.status === "active" ? "poll-status-active" : "poll-status-closed"}`;
+  pollResponseCountEl.textContent = `${poll.totalResponses} response${poll.totalResponses !== 1 ? "s" : ""}`;
+
+  pollBreakdownEl.replaceChildren(
+    ...poll.breakdown.map((option) => {
+      const row = document.createElement("div");
+      row.className = "poll-breakdown-row";
+
+      const label = document.createElement("div");
+      label.className = "poll-breakdown-label";
+      const left = document.createElement("span");
+      left.textContent = option.label;
+      const right = document.createElement("span");
+      right.textContent = `${option.count} · ${option.percentage}%`;
+      label.append(left, right);
+
+      const bar = document.createElement("div");
+      bar.className = "poll-breakdown-bar";
+      const fill = document.createElement("div");
+      fill.className = "poll-breakdown-fill";
+      fill.style.width = `${option.percentage}%`;
+      bar.appendChild(fill);
+
+      row.append(label, bar);
+      return row;
+    }),
+  );
+
+  pollNotesEl.replaceChildren();
+  if (poll.notes.length > 0) {
+    pollNotesEl.style.display = "grid";
+    const heading = document.createElement("div");
+    heading.className = "card-title";
+    heading.textContent = "Anonymous notes";
+    heading.style.marginBottom = "0";
+    pollNotesEl.appendChild(heading);
+
+    for (const note of poll.notes) {
+      const card = document.createElement("div");
+      card.className = "poll-note";
+      const text = document.createElement("div");
+      text.className = "poll-note-text";
+      text.textContent = note.comment;
+      const meta = document.createElement("div");
+      meta.className = "poll-note-meta";
+      meta.textContent = relativeTime(note.created_at);
+      card.append(text, meta);
+      pollNotesEl.appendChild(card);
+    }
+  } else {
+    pollNotesEl.style.display = "none";
+  }
+
+  pollCloseBtn.style.display = poll.status === "active" ? "inline-flex" : "none";
+}
+
 // ── Render feed ───────────────────────────────────────────────────────────────
 
 function renderFeed(items: FeedItem[], append: boolean) {
+  renderExecutiveOverview(totalFeedItems, currentInsights, currentPoll, currentResponses);
   if (!append) feedList.replaceChildren();
 
   if (items.length === 0 && !append) {
@@ -206,6 +358,8 @@ function renderFeed(items: FeedItem[], append: boolean) {
 // ── Render responses ──────────────────────────────────────────────────────────
 
 function renderResponses(responses: LeadershipResponse[]) {
+  currentResponses = responses;
+  renderExecutiveOverview(totalFeedItems, currentInsights, currentPoll, responses);
   if (responses.length === 0) {
     responsesSection.style.display = "none";
     return;
@@ -262,6 +416,13 @@ function renderDeliveries(deliveries: Delivery[]) {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
+async function refreshPoll() {
+  const res = await fetch("/api/dashboard/poll");
+  if (!res.ok) throw new Error(await readApiError(res, "Failed to load poll."));
+  const data = await res.json() as { poll: StructuredPollSummary | null };
+  renderPoll(data.poll);
+}
+
 refreshBtn.addEventListener("click", async () => {
   refreshBtn.disabled = true;
   refreshBtn.textContent = "Refreshing…";
@@ -278,6 +439,97 @@ refreshBtn.addEventListener("click", async () => {
   } finally {
     refreshBtn.disabled = false;
     refreshBtn.textContent = "Refresh insights";
+  }
+});
+
+pollBuilderForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const question = pollBuilderQuestion.value.trim();
+  const options = pollBuilderOptions.value
+    .split("\n")
+    .map((option) => option.trim())
+    .filter(Boolean);
+  if (!question || options.length === 0) return;
+
+  pollBuilderSubmit.disabled = true;
+  pollBuilderSubmit.textContent = "Creating…";
+  setMsg(pollMsg, "", "");
+
+  try {
+    const res = await fetch("/api/dashboard/poll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, options }),
+    });
+    if (!res.ok) {
+      throw new Error(await readApiError(res, "Failed to create poll."));
+    }
+    pollBuilderQuestion.value = "";
+    pollBuilderOptions.value = "";
+    await refreshPoll();
+    setMsg(pollMsg, "Poll created successfully.", "success");
+  } catch (err) {
+    setMsg(
+      pollMsg,
+      err instanceof Error && err.message ? err.message : "Failed to create poll.",
+      "error",
+    );
+  } finally {
+    pollBuilderSubmit.disabled = false;
+    pollBuilderSubmit.textContent = "Create poll";
+  }
+});
+
+pollCloseBtn.addEventListener("click", async () => {
+  if (!currentPoll) return;
+  pollCloseBtn.disabled = true;
+  setMsg(pollMsg, "", "");
+  try {
+    const res = await fetch("/api/dashboard/poll/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pollId: currentPoll.id }),
+    });
+    if (!res.ok) {
+      throw new Error(await readApiError(res, "Failed to close poll."));
+    }
+    await refreshPoll();
+    setMsg(pollMsg, "Poll closed.", "success");
+  } catch (err) {
+    setMsg(
+      pollMsg,
+      err instanceof Error && err.message ? err.message : "Failed to close poll.",
+      "error",
+    );
+  } finally {
+    pollCloseBtn.disabled = false;
+  }
+});
+
+pollDeleteBtn.addEventListener("click", async () => {
+  if (!currentPoll) return;
+  if (!confirm("Delete this poll and all anonymous responses?")) return;
+  pollDeleteBtn.disabled = true;
+  setMsg(pollMsg, "", "");
+  try {
+    const res = await fetch("/api/dashboard/poll", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pollId: currentPoll.id }),
+    });
+    if (!res.ok) {
+      throw new Error(await readApiError(res, "Failed to delete poll."));
+    }
+    await refreshPoll();
+    setMsg(pollMsg, "Poll deleted.", "success");
+  } catch (err) {
+    setMsg(
+      pollMsg,
+      err instanceof Error && err.message ? err.message : "Failed to delete poll.",
+      "error",
+    );
+  } finally {
+    pollDeleteBtn.disabled = false;
   }
 });
 

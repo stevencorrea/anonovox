@@ -45,6 +45,11 @@ import { startScheduler, runBatchJob } from "./scheduler";
 const MAX_FEEDBACK_LENGTH = 4_000;
 const MAX_PERIOD_LABEL_LENGTH = 120;
 const MAX_FEED_LIMIT = 100;
+const MAX_POLL_QUESTION_LENGTH = 240;
+const MAX_POLL_OPTION_LENGTH = 80;
+const MIN_POLL_OPTIONS = 2;
+const MAX_POLL_OPTIONS = 6;
+const MAX_POLL_COMMENT_LENGTH = 1_000;
 const ENTRA_TENANT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const APP_BASE_URL = process.env.BETTER_AUTH_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
 const IS_HOT_RELOAD = Bun.argv.includes("--hot");
@@ -56,6 +61,23 @@ const PRODUCTION_REQUIRED_ENV_VARS = [
   "RESEND_API_KEY",
   "EMAIL_FROM",
 ] as const;
+
+type PollOption = { id: string; label: string };
+type StructuredPollRow = {
+  id: string;
+  org_id: string;
+  question: string;
+  options: unknown;
+  status: "active" | "closed";
+  created_at: string;
+  closed_at: string | null;
+};
+
+type StructuredPollResponseRow = {
+  id: string;
+  comment: string | null;
+  created_at: string;
+};
 
 function errorResponse(status: number, error: string) {
   return Response.json({ error }, { status });
@@ -86,6 +108,140 @@ function requireMaxLength(value: string, maxLength: number, fieldName: string): 
     return errorResponse(400, `${fieldName} must be ${maxLength} characters or fewer`);
   }
   return null;
+}
+
+function readPollOptions(value: unknown): PollOption[] {
+  let raw = value;
+  if (typeof value === "string") {
+    try {
+      raw = JSON.parse(value) as unknown;
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(raw)) return [];
+
+  return raw.flatMap((item, index) => {
+    if (!item || typeof item !== "object") return [];
+    const option = item as { id?: unknown; label?: unknown };
+    const label = readTrimmedString(option.label);
+    const id = readTrimmedString(option.id) ?? `option-${index + 1}`;
+    return label ? [{ id, label }] : [];
+  });
+}
+
+function normalizePollOptions(value: unknown): { options: PollOption[] } | { error: string } {
+  if (!Array.isArray(value)) {
+    return { error: "At least two poll options are required" };
+  }
+
+  const options: PollOption[] = [];
+  const seenLabels = new Set<string>();
+
+  for (const item of value) {
+    const label = readTrimmedString(item);
+    if (!label) continue;
+    if (label.length > MAX_POLL_OPTION_LENGTH) {
+      return { error: `Poll options must be ${MAX_POLL_OPTION_LENGTH} characters or fewer` };
+    }
+    const normalized = label.toLowerCase();
+    if (seenLabels.has(normalized)) {
+      return { error: "Poll options must be unique" };
+    }
+    seenLabels.add(normalized);
+    options.push({
+      id: `option-${options.length + 1}`,
+      label,
+    });
+  }
+
+  if (options.length < MIN_POLL_OPTIONS) {
+    return { error: `At least ${MIN_POLL_OPTIONS} poll options are required` };
+  }
+  if (options.length > MAX_POLL_OPTIONS) {
+    return { error: `No more than ${MAX_POLL_OPTIONS} poll options are allowed` };
+  }
+
+  return { options };
+}
+
+function formatStructuredPoll(row: StructuredPollRow) {
+  return {
+    id: row.id,
+    question: row.question,
+    options: readPollOptions(row.options),
+    status: row.status,
+    created_at: row.created_at,
+    closed_at: row.closed_at,
+  };
+}
+
+async function getLatestStructuredPollForOrg(orgId: string) {
+  const rows = await Bun.sql`
+    SELECT id, org_id, question, options, status, created_at, closed_at
+    FROM reporting.structured_polls
+    WHERE org_id = ${orgId}
+    ORDER BY created_at DESC
+    LIMIT 1
+  ` as StructuredPollRow[];
+  return rows[0] ?? null;
+}
+
+async function getActiveStructuredPollForOrg(orgId: string) {
+  const rows = await Bun.sql`
+    SELECT id, org_id, question, options, status, created_at, closed_at
+    FROM reporting.structured_polls
+    WHERE org_id = ${orgId} AND status = 'active'
+    ORDER BY created_at DESC
+    LIMIT 1
+  ` as StructuredPollRow[];
+  return rows[0] ?? null;
+}
+
+async function buildStructuredPollSummary(orgId: string) {
+  const pollRow = await getLatestStructuredPollForOrg(orgId);
+  if (!pollRow) return null;
+
+  const poll = formatStructuredPoll(pollRow);
+  const [countRows, noteRows] = await Promise.all([
+    Bun.sql`
+      SELECT option_id, COUNT(*)::int AS count
+      FROM reporting.structured_poll_responses
+      WHERE poll_id = ${poll.id}
+      GROUP BY option_id
+    ` as unknown as Array<{ option_id: string; count: number }>,
+    Bun.sql`
+      SELECT id, comment, created_at
+      FROM reporting.structured_poll_responses
+      WHERE poll_id = ${poll.id}
+        AND comment IS NOT NULL
+        AND btrim(comment) <> ''
+      ORDER BY updated_at DESC
+      LIMIT 10
+    ` as unknown as StructuredPollResponseRow[],
+  ]);
+
+  const countMap = new Map(countRows.map((row) => [row.option_id, Number(row.count)]));
+  const totalResponses = [...countMap.values()].reduce((sum, count) => sum + count, 0);
+
+  return {
+    ...poll,
+    totalResponses,
+    breakdown: poll.options.map((option) => {
+      const count = countMap.get(option.id) ?? 0;
+      return {
+        id: option.id,
+        label: option.label,
+        count,
+        percentage: totalResponses > 0 ? Math.round((count / totalResponses) * 1000) / 10 : 0,
+      };
+    }),
+    notes: noteRows.map((row) => ({
+      id: row.id,
+      comment: row.comment ?? "",
+      created_at: row.created_at,
+    })),
+  };
 }
 
 function normalizeTenantId(value: unknown): string | null {
@@ -285,6 +441,90 @@ const server = Bun.serve({
           LIMIT 20
         `;
         return Response.json({ deliveries: rows });
+      },
+    },
+    "/api/dashboard/poll": {
+      GET: async (req) => {
+        const guard = await requireOrgAdmin(req);
+        if (guard instanceof Response) return guard;
+        const poll = await buildStructuredPollSummary(guard.org.id);
+        return Response.json({ poll });
+      },
+      POST: async (req) => {
+        const guard = await requireOrgAdmin(req);
+        if (guard instanceof Response) return guard;
+        const body = await readJsonBody<{ question?: string; options?: unknown }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+
+        const question = readTrimmedString(body.question);
+        if (!question) return errorResponse(400, "Question required");
+        const questionLengthError = requireMaxLength(question, MAX_POLL_QUESTION_LENGTH, "Question");
+        if (questionLengthError) return questionLengthError;
+
+        const normalizedOptions = normalizePollOptions(body.options);
+        if ("error" in normalizedOptions) {
+          return errorResponse(400, normalizedOptions.error);
+        }
+
+        const existingActive = await getActiveStructuredPollForOrg(guard.org.id);
+        if (existingActive) {
+          return errorResponse(409, "Close the current active poll before creating a new one");
+        }
+
+        await Bun.sql`
+          INSERT INTO reporting.structured_polls (org_id, question, options, status, created_by)
+          VALUES (
+            ${guard.org.id},
+            ${question},
+            ${JSON.stringify(normalizedOptions.options)}::jsonb,
+            'active',
+            ${guard.session.user.id}
+          )
+        `;
+
+        const poll = await buildStructuredPollSummary(guard.org.id);
+        return Response.json({ ok: true, poll }, { status: 201 });
+      },
+      DELETE: async (req) => {
+        const guard = await requireOrgAdmin(req);
+        if (guard instanceof Response) return guard;
+        const body = await readJsonBody<{ pollId?: string }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+        const pollId = readTrimmedString(body.pollId);
+        if (!pollId) return errorResponse(400, "Poll ID required");
+
+        const deleted = await Bun.sql`
+          DELETE FROM reporting.structured_polls
+          WHERE id = ${pollId} AND org_id = ${guard.org.id}
+          RETURNING id
+        `;
+        if (!deleted[0]) return errorResponse(404, "Poll not found");
+
+        const poll = await buildStructuredPollSummary(guard.org.id);
+        return Response.json({ ok: true, poll });
+      },
+    },
+    "/api/dashboard/poll/close": {
+      POST: async (req) => {
+        const guard = await requireOrgAdmin(req);
+        if (guard instanceof Response) return guard;
+        const body = await readJsonBody<{ pollId?: string }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+        const pollId = readTrimmedString(body.pollId);
+        if (!pollId) return errorResponse(400, "Poll ID required");
+
+        const updated = await Bun.sql`
+          UPDATE reporting.structured_polls
+          SET status = 'closed', closed_at = NOW()
+          WHERE id = ${pollId}
+            AND org_id = ${guard.org.id}
+            AND status = 'active'
+          RETURNING id
+        `;
+        if (!updated[0]) return errorResponse(404, "Active poll not found");
+
+        const poll = await buildStructuredPollSummary(guard.org.id);
+        return Response.json({ ok: true, poll });
       },
     },
     // ── Teams integration ────────────────────────────────────────────────────
@@ -627,6 +867,125 @@ const server = Bun.serve({
             { status: 500 },
           );
         }
+      },
+    },
+    "/api/feedback/poll": {
+      GET: async (req) => {
+        const session = await requireVerifiedSession(req);
+        if (session instanceof Response) return session;
+        const membership = await getSessionOrgMembership(session);
+        if (!membership) return errorResponse(403, "No organization found");
+
+        const pollRow = await getActiveStructuredPollForOrg(membership.org.id);
+        if (!pollRow) return Response.json({ poll: null, myResponse: null });
+
+        const poll = formatStructuredPoll(pollRow);
+        const responses = await Bun.sql`
+          SELECT r.option_id, r.comment, r.updated_at
+          FROM reporting.structured_poll_responses r
+          JOIN private.structured_poll_identity i ON i.response_id = r.id
+          WHERE i.poll_id = ${poll.id}
+            AND i.user_id = ${session.user.id}
+          LIMIT 1
+        ` as Array<{ option_id: string; comment: string | null; updated_at: string }>;
+
+        return Response.json({
+          poll,
+          myResponse: responses[0]
+            ? {
+              optionId: responses[0].option_id,
+              comment: responses[0].comment,
+              updated_at: responses[0].updated_at,
+            }
+            : null,
+        });
+      },
+      POST: async (req) => {
+        const session = await requireVerifiedSession(req);
+        if (session instanceof Response) return session;
+        const membership = await getSessionOrgMembership(session);
+        if (!membership) return errorResponse(403, "No organization found");
+
+        const body = await readJsonBody<{ pollId?: string; optionId?: string; comment?: string | null }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+
+        const pollId = readTrimmedString(body.pollId);
+        const optionId = readTrimmedString(body.optionId);
+        if (!pollId) return errorResponse(400, "Poll ID required");
+        if (!optionId) return errorResponse(400, "Option required");
+
+        const comment = body.comment === null ? null : readTrimmedString(body.comment);
+        if (comment) {
+          const commentLengthError = requireMaxLength(comment, MAX_POLL_COMMENT_LENGTH, "Comment");
+          if (commentLengthError) return commentLengthError;
+        }
+
+        const pollRow = await getActiveStructuredPollForOrg(membership.org.id);
+        if (!pollRow || pollRow.id !== pollId) {
+          return errorResponse(404, "Active poll not found");
+        }
+
+        const poll = formatStructuredPoll(pollRow);
+        if (!poll.options.some((option) => option.id === optionId)) {
+          return errorResponse(400, "Invalid poll option");
+        }
+
+        const existing = await Bun.sql`
+          SELECT response_id
+          FROM private.structured_poll_identity
+          WHERE poll_id = ${pollId}
+            AND user_id = ${session.user.id}
+          LIMIT 1
+        ` as Array<{ response_id: string }>;
+
+        if (existing[0]) {
+          await Bun.sql`
+            UPDATE reporting.structured_poll_responses
+            SET option_id = ${optionId},
+                comment = ${comment},
+                updated_at = NOW()
+            WHERE id = ${existing[0].response_id}
+          `;
+          await Bun.sql`
+            UPDATE private.structured_poll_identity
+            SET user_email = ${session.user.email},
+                updated_at = NOW()
+            WHERE response_id = ${existing[0].response_id}
+          `;
+        } else {
+          const inserted = await Bun.sql`
+            INSERT INTO reporting.structured_poll_responses (poll_id, option_id, comment)
+            VALUES (${pollId}, ${optionId}, ${comment})
+            RETURNING id
+          ` as unknown as Array<{ id: string }>;
+          const responseId = inserted[0]?.id;
+          if (!responseId) return errorResponse(500, "Failed to save poll response");
+
+          await Bun.sql`
+            INSERT INTO private.structured_poll_identity (poll_id, response_id, user_id, user_email)
+            VALUES (${pollId}, ${responseId}, ${session.user.id}, ${session.user.email})
+          `;
+        }
+
+        const responses = await Bun.sql`
+          SELECT r.option_id, r.comment, r.updated_at
+          FROM reporting.structured_poll_responses r
+          JOIN private.structured_poll_identity i ON i.response_id = r.id
+          WHERE i.poll_id = ${pollId}
+            AND i.user_id = ${session.user.id}
+          LIMIT 1
+        ` as Array<{ option_id: string; comment: string | null; updated_at: string }>;
+
+        return Response.json({
+          ok: true,
+          myResponse: responses[0]
+            ? {
+              optionId: responses[0].option_id,
+              comment: responses[0].comment,
+              updated_at: responses[0].updated_at,
+            }
+            : null,
+        }, { status: 201 });
       },
     },
     "/api/feedback/analyze": {

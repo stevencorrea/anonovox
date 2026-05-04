@@ -215,6 +215,73 @@ export async function runMigrations() {
   await Bun.sql`GRANT SELECT ON reporting.org_insights TO reporter`;
   await Bun.sql`GRANT SELECT ON reporting.leadership_responses TO reporter`;
 
+  // ── Structured feedback polls ────────────────────────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.structured_polls (
+      id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id      TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
+      question    TEXT        NOT NULL,
+      options     JSONB       NOT NULL,
+      status      TEXT        NOT NULL DEFAULT 'active',
+      created_by  TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      closed_at   TIMESTAMPTZ
+    )
+  `;
+
+  await Bun.sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS structured_polls_active_org_idx
+      ON reporting.structured_polls (org_id)
+      WHERE status = 'active'
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS structured_polls_org_created_idx
+      ON reporting.structured_polls (org_id, created_at DESC)
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.structured_poll_responses (
+      id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      poll_id     TEXT        NOT NULL REFERENCES reporting.structured_polls(id) ON DELETE CASCADE,
+      option_id   TEXT        NOT NULL,
+      comment     TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS structured_poll_responses_poll_idx
+      ON reporting.structured_poll_responses (poll_id, updated_at DESC)
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS private.structured_poll_identity (
+      id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      poll_id     TEXT        NOT NULL REFERENCES reporting.structured_polls(id) ON DELETE CASCADE,
+      response_id TEXT        NOT NULL UNIQUE REFERENCES reporting.structured_poll_responses(id) ON DELETE CASCADE,
+      user_id     TEXT        NOT NULL,
+      user_email  TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS structured_poll_identity_poll_user_idx
+      ON private.structured_poll_identity (poll_id, user_id)
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS structured_poll_identity_response_idx
+      ON private.structured_poll_identity (response_id)
+  `;
+
+  await Bun.sql`GRANT SELECT ON reporting.structured_polls TO reporter`;
+  await Bun.sql`GRANT SELECT ON reporting.structured_poll_responses TO reporter`;
+
   // ── Entra SSO: tenant ID on org + audit log ───────────────────────────────
 
   await Bun.sql`

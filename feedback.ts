@@ -2,6 +2,20 @@ import type { AnalysisRisk } from "./analyze";
 import type { ReviewSuggestion } from "./review";
 import { authClient } from "./auth-client";
 
+type StructuredPoll = {
+  id: string;
+  question: string;
+  options: Array<{ id: string; label: string }>;
+  status: "active" | "closed";
+  created_at: string;
+};
+
+type StructuredPollResponse = {
+  optionId: string;
+  comment: string | null;
+  updated_at: string;
+};
+
 // Auth guard — redirect to sign-in if no active session
 (async () => {
   const session = await authClient.getSession();
@@ -27,6 +41,8 @@ import { authClient } from "./auth-client";
       });
       link.textContent = "Sent! Check your inbox.";
     });
+  } else {
+    void loadStructuredPoll();
   }
 })();
 
@@ -47,6 +63,18 @@ const reviewPanel = document.getElementById("review-panel") as HTMLDivElement;
 const reviewContent = document.getElementById(
   "review-content",
 ) as HTMLDivElement;
+const structuredPollCard = document.getElementById("structured-poll-card") as HTMLDivElement;
+const structuredPollForm = document.getElementById("structured-poll-form") as HTMLFormElement;
+const structuredPollQuestion = document.getElementById("structured-poll-question") as HTMLDivElement;
+const structuredPollMeta = document.getElementById("structured-poll-meta") as HTMLDivElement;
+const structuredPollOptions = document.getElementById("structured-poll-options") as HTMLDivElement;
+const structuredPollComment = document.getElementById("structured-poll-comment") as HTMLTextAreaElement;
+const structuredPollSubmit = document.getElementById("structured-poll-submit") as HTMLButtonElement;
+const structuredPollMessage = document.getElementById("structured-poll-message") as HTMLDivElement;
+const structuredPollResponseNote = document.getElementById("structured-poll-response-note") as HTMLDivElement;
+
+let activeStructuredPoll: StructuredPoll | null = null;
+let myStructuredPollResponse: StructuredPollResponse | null = null;
 
 // --- Form submission (moved from inline script) ---
 
@@ -106,6 +134,135 @@ async function readApiError(res: Response, fallback: string): Promise<string> {
   } catch {
     return fallback;
   }
+}
+
+function setStructuredPollMessage(text: string, type: "success" | "error" | "") {
+  structuredPollMessage.textContent = text;
+  structuredPollMessage.className = `message ${type}`;
+  structuredPollMessage.style.display = text ? "block" : "none";
+}
+
+function renderStructuredPollResponseNote() {
+  if (!myStructuredPollResponse?.updated_at) {
+    structuredPollResponseNote.style.display = "none";
+    structuredPollResponseNote.textContent = "";
+    return;
+  }
+
+  structuredPollResponseNote.style.display = "block";
+  structuredPollResponseNote.textContent = `Last updated ${relativeTime(myStructuredPollResponse.updated_at)}`;
+}
+
+function renderStructuredPoll() {
+  const poll = activeStructuredPoll;
+  structuredPollOptions.replaceChildren();
+
+  if (!poll) {
+    structuredPollCard.style.display = "none";
+    return;
+  }
+
+  structuredPollCard.style.display = "block";
+  structuredPollQuestion.textContent = poll.question;
+  structuredPollMeta.textContent = "Anonymous single-select response";
+  structuredPollComment.value = myStructuredPollResponse?.comment ?? "";
+  structuredPollSubmit.textContent = myStructuredPollResponse ? "Update poll response" : "Submit poll response";
+
+  for (const option of poll.options) {
+    const card = document.createElement("label");
+    card.className = "poll-option-card";
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "structured-poll-option";
+    radio.value = option.id;
+    radio.checked = myStructuredPollResponse?.optionId === option.id;
+
+    const text = document.createElement("div");
+    text.className = "poll-option-text";
+    text.textContent = option.label;
+
+    card.append(radio, text);
+    structuredPollOptions.appendChild(card);
+  }
+
+  renderStructuredPollResponseNote();
+}
+
+async function loadStructuredPoll() {
+  try {
+    const res = await fetch("/api/feedback/poll");
+    if (!res.ok) return;
+    const data = await res.json() as {
+      poll: StructuredPoll | null;
+      myResponse: StructuredPollResponse | null;
+    };
+    activeStructuredPoll = data.poll;
+    myStructuredPollResponse = data.myResponse;
+    renderStructuredPoll();
+  } catch {
+    structuredPollCard.style.display = "none";
+  }
+}
+
+structuredPollForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!activeStructuredPoll) return;
+
+  const selected = structuredPollForm.querySelector<HTMLInputElement>("input[name='structured-poll-option']:checked");
+  if (!selected) {
+    setStructuredPollMessage("Choose an option before submitting.", "error");
+    return;
+  }
+
+  structuredPollSubmit.disabled = true;
+  structuredPollSubmit.textContent = myStructuredPollResponse ? "Updating…" : "Submitting…";
+  setStructuredPollMessage("", "");
+
+  try {
+    const res = await fetch("/api/feedback/poll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pollId: activeStructuredPoll.id,
+        optionId: selected.value,
+        comment: structuredPollComment.value.trim() || null,
+      }),
+    });
+
+    if (!res.ok) {
+      setStructuredPollMessage(
+        await readApiError(res, "Failed to submit poll response."),
+        "error",
+      );
+      return;
+    }
+
+    const data = await res.json() as { myResponse: StructuredPollResponse | null };
+    myStructuredPollResponse = data.myResponse;
+    renderStructuredPollResponseNote();
+    structuredPollSubmit.textContent = "Update poll response";
+    setStructuredPollMessage("Your poll response was recorded anonymously.", "success");
+  } catch {
+    setStructuredPollMessage("Could not reach the server. Please try again.", "error");
+  } finally {
+    structuredPollSubmit.disabled = false;
+    if (activeStructuredPoll) {
+      structuredPollSubmit.textContent = myStructuredPollResponse ? "Update poll response" : "Submit poll response";
+    }
+  }
+});
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 // --- Debounced analysis ---

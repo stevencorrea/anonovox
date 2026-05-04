@@ -190,6 +190,98 @@
                 box-shadow: 0 0 0 3px var(--accent-pale);
             }
 
+            .structured-poll-card {
+                margin-bottom: 2rem;
+                padding: 1.25rem;
+                border: 1px solid var(--border-light);
+                border-radius: 0.75rem;
+                background: linear-gradient(
+                    180deg,
+                    rgba(44, 62, 122, 0.05) 0%,
+                    rgba(44, 62, 122, 0.015) 100%
+                );
+            }
+
+            .structured-poll-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 1rem;
+                margin-bottom: 0.9rem;
+            }
+
+            .structured-poll-kicker {
+                font-size: 0.7rem;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--accent);
+                font-weight: 600;
+                margin-bottom: 0.35rem;
+            }
+
+            .structured-poll-question {
+                font-size: 1rem;
+                color: var(--text-primary);
+                line-height: 1.45;
+            }
+
+            .structured-poll-meta {
+                font-size: 0.74rem;
+                color: var(--text-tertiary);
+                white-space: nowrap;
+            }
+
+            .poll-option-list {
+                display: grid;
+                gap: 0.75rem;
+                margin-top: 1rem;
+            }
+
+            .poll-option-card {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.9rem 1rem;
+                border: 1px solid var(--border);
+                border-radius: 0.75rem;
+                background: rgba(255, 255, 255, 0.72);
+                cursor: pointer;
+                transition:
+                    border-color var(--transition-fast),
+                    transform var(--transition-fast),
+                    background var(--transition-fast);
+            }
+
+            .poll-option-card:hover {
+                border-color: var(--accent);
+                transform: translateY(-1px);
+            }
+
+            .poll-option-card input {
+                margin: 0;
+                accent-color: var(--accent);
+            }
+
+            .poll-option-text {
+                font-size: 0.92rem;
+                color: var(--text-primary);
+                line-height: 1.4;
+            }
+
+            .poll-comment-wrap {
+                margin-top: 1rem;
+            }
+
+            .poll-comment-wrap textarea {
+                min-height: 96px;
+            }
+
+            .poll-response-note {
+                margin-top: 0.9rem;
+                font-size: 0.78rem;
+                color: var(--text-tertiary);
+            }
+
             .form-actions {
                 display: flex;
                 gap: 0.75rem;
@@ -643,6 +735,61 @@
                     Your feedback is sent to leadership in a time-delayed batch,
                     completely anonymous.
                 </p>
+
+                <div
+                    id="structured-poll-card"
+                    class="structured-poll-card"
+                    style="display:none"
+                >
+                    <div class="structured-poll-head">
+                        <div>
+                            <div class="structured-poll-kicker">Active poll</div>
+                            <div
+                                id="structured-poll-question"
+                                class="structured-poll-question"
+                            ></div>
+                        </div>
+                        <div
+                            id="structured-poll-meta"
+                            class="structured-poll-meta"
+                        ></div>
+                    </div>
+
+                    <form id="structured-poll-form">
+                        <div
+                            id="structured-poll-options"
+                            class="poll-option-list"
+                        ></div>
+
+                        <div class="poll-comment-wrap">
+                            <label for="structured-poll-comment">
+                                Optional context
+                            </label>
+                            <textarea
+                                id="structured-poll-comment"
+                                name="structured-poll-comment"
+                                placeholder="Add anonymous context if it would help leadership interpret your answer."
+                            ></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" id="structured-poll-submit">
+                                Submit poll response
+                            </button>
+                        </div>
+                    </form>
+
+                    <div
+                        id="structured-poll-message"
+                        class="message"
+                        style="display:none"
+                    ></div>
+                    <div
+                        id="structured-poll-response-note"
+                        class="poll-response-note"
+                        style="display:none"
+                    ></div>
+                </div>
 
                 <div class="anon-notice">
                     <svg width="16" height="16" viewBox="0 0 14 14" fill="none">

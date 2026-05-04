@@ -15,7 +15,7 @@
     }
 
     .settings-shell {
-      max-width: 780px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 8rem 2rem 6rem;
     }
@@ -84,6 +84,61 @@
     #dashboard-error { color: var(--error); }
 
     #dashboard-content { display: none; }
+
+    .dashboard-overview {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .overview-card {
+      background: linear-gradient(180deg, rgba(44, 62, 122, 0.08) 0%, rgba(44, 62, 122, 0.02) 100%);
+      border: 1px solid var(--border-light);
+      border-radius: 1rem;
+      padding: 1.2rem 1.25rem;
+    }
+
+    .overview-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 0.65rem;
+    }
+
+    .overview-value {
+      font-family: var(--ff-display);
+      font-size: 2rem;
+      line-height: 1;
+      color: var(--text-primary);
+      margin-bottom: 0.55rem;
+    }
+
+    .overview-detail {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .dashboard-main,
+    .dashboard-side {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .dashboard-main .settings-card,
+    .dashboard-side .settings-card {
+      margin-bottom: 0;
+    }
 
     /* ── Insights ── */
     #insights-loading {
@@ -186,6 +241,168 @@
       margin-top: 1rem;
     }
 
+    /* ── Structured feedback ── */
+    .poll-stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .poll-state {
+      font-size: 0.875rem;
+      color: var(--text-tertiary);
+      padding: 0.5rem 0 0;
+    }
+
+    .poll-question {
+      font-size: 1rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+      margin-bottom: 0.4rem;
+    }
+
+    .poll-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .poll-status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .poll-status-active {
+      background: rgba(44, 62, 122, 0.1);
+      color: var(--accent);
+    }
+
+    .poll-status-closed {
+      background: rgba(90, 84, 80, 0.1);
+      color: var(--text-secondary);
+    }
+
+    .poll-response-count {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+    }
+
+    .poll-breakdown {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .poll-breakdown-row {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .poll-breakdown-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.84rem;
+      color: var(--text-primary);
+    }
+
+    .poll-breakdown-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: var(--surface-alt);
+      overflow: hidden;
+    }
+
+    .poll-breakdown-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2c3e7a 0%, #6f8cf2 100%);
+    }
+
+    .poll-notes {
+      margin-top: 1.25rem;
+      display: grid;
+      gap: 0.75rem;
+      max-height: 420px;
+      overflow: auto;
+      padding-right: 0.25rem;
+    }
+
+    .poll-note {
+      padding: 0.85rem 1rem;
+      border-left: 3px solid var(--border);
+      background: var(--surface-alt);
+      border-radius: 0 0.75rem 0.75rem 0;
+    }
+
+    .poll-note-text {
+      font-size: 0.84rem;
+      color: var(--text-primary);
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .poll-note-meta {
+      margin-top: 0.4rem;
+      font-size: 0.72rem;
+      color: var(--text-tertiary);
+    }
+
+    .poll-builder {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .poll-builder textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.9rem 1rem;
+      font-family: var(--ff-body);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      resize: vertical;
+    }
+
+    .poll-builder textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-pale);
+    }
+
+    .poll-builder-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 0.5rem;
+    }
+
+    .poll-builder-help {
+      margin-top: 0.5rem;
+      font-size: 0.76rem;
+      color: var(--text-tertiary);
+      line-height: 1.45;
+    }
+
+    .poll-builder-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
     /* ── Feed ── */
     #feed-count {
       font-size: 0.78rem;
@@ -211,6 +428,12 @@
       font-size: 0.72rem;
       color: var(--text-tertiary);
       margin-top: 0.35rem;
+    }
+
+    #feed-list {
+      max-height: 880px;
+      overflow: auto;
+      padding-right: 0.25rem;
     }
 
     #feed-empty {
@@ -393,7 +616,20 @@
     }
 
     /* ── Responsive ── */
+    @media (max-width: 980px) {
+      .dashboard-overview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 600px) {
+      .dashboard-overview {
+        grid-template-columns: 1fr;
+      }
       .settings-shell { padding: 6rem 1.25rem 4rem; }
       .respond-row { flex-direction: column; align-items: stretch; }
     }
@@ -434,73 +670,133 @@
 
     <!-- Main content -->
     <div id="dashboard-content">
-
-      <!-- AI Insights card -->
-      <div class="settings-card">
-        <div class="card-header">
-          <div class="card-title">AI Insights</div>
-          <button id="refresh-insights-btn" class="btn-secondary btn-small">Refresh insights</button>
+      <div class="dashboard-overview">
+        <div class="overview-card">
+          <div class="overview-label">Feedback Volume</div>
+          <div id="overview-feedback-count" class="overview-value">0</div>
+          <div id="overview-feedback-detail" class="overview-detail">No feedback captured yet.</div>
         </div>
-        <div id="insights-loading">Generating insights…</div>
-        <div id="insights-empty" style="display:none">No feedback yet — insights will appear once responses come in.</div>
-        <div id="insights-content" style="display:none">
-          <div class="insights-section-label">Themes</div>
-          <div id="insights-themes" class="themes-row"></div>
-
-          <div class="insights-section-label">Sentiment</div>
-          <div id="insights-sentiment"></div>
-
-          <div class="insights-section-label">Key Quotes</div>
-          <div id="insights-quotes"></div>
-
-          <div class="insights-section-label">Summary</div>
-          <p id="insights-summary"></p>
-
-          <div id="insights-generated-at"></div>
+        <div class="overview-card">
+          <div class="overview-label">Sentiment Risk</div>
+          <div id="overview-negative-sentiment" class="overview-value">0%</div>
+          <div id="overview-sentiment-detail" class="overview-detail">AI analysis will summarize team sentiment here.</div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-label">Active Poll</div>
+          <div id="overview-poll-count" class="overview-value">0</div>
+          <div id="overview-poll-detail" class="overview-detail">No structured poll is active.</div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-label">Leadership Replies</div>
+          <div id="overview-response-count" class="overview-value">0</div>
+          <div id="overview-response-detail" class="overview-detail">No leadership responses posted yet.</div>
         </div>
       </div>
 
-      <!-- Post Response card -->
-      <div class="settings-card">
-        <div class="card-title">Post Leadership Response</div>
-        <form id="respond-form">
-          <div class="respond-field-label">Your response to the team</div>
-          <textarea id="respond-content" class="respond-textarea" placeholder="Share context, decisions, or acknowledgment with your team…" required></textarea>
-          <div class="respond-row">
-            <div class="respond-period-wrap">
-              <div class="respond-field-label">Period label <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.65rem">(optional)</span></div>
-              <input id="respond-period" class="respond-period-input" type="text" placeholder="e.g. Q2 2025, May All-Hands" />
+      <div class="dashboard-grid">
+        <div class="dashboard-main">
+          <div class="settings-card">
+            <div class="card-header">
+              <div class="card-title">AI Insights</div>
+              <button id="refresh-insights-btn" class="btn-secondary btn-small">Refresh insights</button>
             </div>
-            <div>
-              <button type="submit" class="btn-primary btn-small">Post response</button>
+            <div id="insights-loading">Generating insights…</div>
+            <div id="insights-empty" style="display:none">No feedback yet — insights will appear once responses come in.</div>
+            <div id="insights-content" style="display:none">
+              <div class="insights-section-label">Themes</div>
+              <div id="insights-themes" class="themes-row"></div>
+
+              <div class="insights-section-label">Sentiment</div>
+              <div id="insights-sentiment"></div>
+
+              <div class="insights-section-label">Key Quotes</div>
+              <div id="insights-quotes"></div>
+
+              <div class="insights-section-label">Summary</div>
+              <p id="insights-summary"></p>
+
+              <div id="insights-generated-at"></div>
             </div>
           </div>
-        </form>
-        <div id="respond-msg" class="inline-msg"></div>
 
-        <!-- Past responses -->
-        <div id="responses-section" style="display:none;margin-top:1.5rem;">
-          <div class="card-title" style="margin-bottom:0.75rem">Previous responses</div>
-          <div id="responses-list"></div>
+          <div class="settings-card">
+            <div class="card-header">
+              <div class="card-title">Feedback Feed</div>
+              <span id="feed-count"></span>
+            </div>
+            <div id="feed-empty" style="display:none">No feedback submissions yet.</div>
+            <div id="feed-list"></div>
+            <button id="load-more-btn">Load more</button>
+          </div>
         </div>
-      </div>
 
-      <!-- Feedback Feed card -->
-      <div class="settings-card">
-        <div class="card-header">
-          <div class="card-title">Feedback Feed</div>
-          <span id="feed-count"></span>
+        <div class="dashboard-side">
+          <div class="settings-card">
+            <div class="card-title">Structured Feedback</div>
+            <div class="poll-stack">
+              <div id="poll-loading" class="poll-state">Loading poll status…</div>
+              <div id="poll-empty" class="poll-state" style="display:none">No structured poll yet. Create one to ask the whole organization the same question.</div>
+              <div id="poll-view" style="display:none">
+                <div id="poll-question" class="poll-question"></div>
+                <div class="poll-meta-row">
+                  <span id="poll-status" class="poll-status-badge"></span>
+                  <span id="poll-response-count" class="poll-response-count"></span>
+                </div>
+                <div id="poll-breakdown" class="poll-breakdown"></div>
+                <div id="poll-notes" class="poll-notes" style="display:none"></div>
+                <div class="poll-builder-row">
+                  <button id="poll-close-btn" type="button" class="btn-secondary btn-small">Close poll</button>
+                  <button id="poll-delete-btn" type="button" class="btn-secondary btn-small">Delete poll</button>
+                </div>
+              </div>
+            </div>
+
+            <form id="poll-builder-form" class="poll-builder">
+              <label for="poll-builder-question" class="poll-builder-label">Question</label>
+              <textarea id="poll-builder-question" placeholder="How sustainable does our current workload feel this month?" rows="3" required></textarea>
+
+              <div style="margin-top:1rem">
+                <label for="poll-builder-options" class="poll-builder-label">Options</label>
+                <textarea id="poll-builder-options" placeholder="Very sustainable&#10;Mostly sustainable&#10;Mixed&#10;Not sustainable" rows="5" required></textarea>
+                <div class="poll-builder-help">Enter one option per line. Employees can select one option and optionally add anonymous context.</div>
+              </div>
+
+              <div class="poll-builder-row">
+                <button type="submit" id="poll-builder-submit" class="btn-primary btn-small">Create poll</button>
+              </div>
+              <div id="poll-msg" class="inline-msg"></div>
+            </form>
+          </div>
+
+          <div class="settings-card">
+            <div class="card-title">Post Leadership Response</div>
+            <form id="respond-form">
+              <div class="respond-field-label">Your response to the team</div>
+              <textarea id="respond-content" class="respond-textarea" placeholder="Share context, decisions, or acknowledgment with your team…" required></textarea>
+              <div class="respond-row">
+                <div class="respond-period-wrap">
+                  <div class="respond-field-label">Period label <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.65rem">(optional)</span></div>
+                  <input id="respond-period" class="respond-period-input" type="text" placeholder="e.g. Q2 2025, May All-Hands" />
+                </div>
+                <div>
+                  <button type="submit" class="btn-primary btn-small">Post response</button>
+                </div>
+              </div>
+            </form>
+            <div id="respond-msg" class="inline-msg"></div>
+
+            <div id="responses-section" style="display:none;margin-top:1.5rem;">
+              <div class="card-title" style="margin-bottom:0.75rem">Previous responses</div>
+              <div id="responses-list"></div>
+            </div>
+          </div>
+
+          <div class="settings-card" id="deliveries-card" style="display:none">
+            <div class="card-title">Email Digest History</div>
+            <div id="deliveries-empty" style="display:none;font-size:0.85rem;color:var(--text-tertiary)">No digests sent yet. The first batch will go out tonight.</div>
+            <div id="deliveries-list"></div>
+          </div>
         </div>
-        <div id="feed-empty" style="display:none">No feedback submissions yet.</div>
-        <div id="feed-list"></div>
-        <button id="load-more-btn">Load more</button>
-      </div>
-
-      <!-- Delivery History card -->
-      <div class="settings-card" id="deliveries-card" style="display:none">
-        <div class="card-title">Email Digest History</div>
-        <div id="deliveries-empty" style="display:none;font-size:0.85rem;color:var(--text-tertiary)">No digests sent yet. The first batch will go out tonight.</div>
-        <div id="deliveries-list"></div>
       </div>
 
     </div><!-- /dashboard-content -->
