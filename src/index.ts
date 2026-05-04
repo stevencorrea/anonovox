@@ -5,6 +5,7 @@ import acceptInvitationPage from "./pages/accept-invitation.html";
 import pricingPage from "./pages/pricing.html";
 import settingsPage from "./pages/settings.html";
 import dashboardPage from "./pages/dashboard.html";
+import adminPage from "./pages/admin.html";
 import { auth } from "./server/auth";
 import { runMigrations } from "./server/migrate";
 import { analyzeText } from "./lib/analyze";
@@ -13,9 +14,11 @@ import { reviewDraft } from "./lib/review";
 import {
   getSessionOrgMembership,
   requireOrgAdmin,
+  requireStaffSession,
   requireVerifiedSession,
   setOrgEntraTenant,
 } from "./server/org";
+import { instrumentRoutes, getMetricsSnapshot, getRecentSpans, getSystemInfo } from "./lib/telemetry";
 import {
   verifySlackSignature,
   signState,
@@ -304,7 +307,7 @@ const developmentOptions = IS_PRODUCTION_RUNTIME
 
 const server = Bun.serve({
   port: Number(process.env.PORT ?? 3000),
-  routes: {
+  routes: instrumentRoutes({
     "/": homePage,
     "/signin": signinPage,
     "/accept-invitation": acceptInvitationPage,
@@ -312,6 +315,7 @@ const server = Bun.serve({
     "/pricing": pricingPage,
     "/settings": settingsPage,
     "/dashboard": dashboardPage,
+    "/admin": adminPage,
     "/api/org/me": {
       GET: async (req) => {
         const session = await requireVerifiedSession(req);
@@ -1035,7 +1039,61 @@ const server = Bun.serve({
         return Response.json({ ok: true }, { status: 201 });
       },
     },
-  },
+    "/api/admin/system": {
+      GET: async (req) => {
+        const session = await requireStaffSession(req);
+        if (session instanceof Response) return session;
+        const [dbRows] = await Promise.all([
+          Bun.sql`
+            SELECT
+              version() AS version,
+              current_database() AS database,
+              pg_postmaster_start_time() AS pg_start_time
+          `,
+        ]) as [Array<{ version: string; database: string; pg_start_time: string }>];
+        const [orgsRow, usersRow, slackRow, teamsRow] = await Promise.all([
+          Bun.sql`SELECT COUNT(*)::int AS count FROM "organization"`,
+          Bun.sql`SELECT COUNT(*)::int AS count FROM "user"`,
+          Bun.sql`SELECT COUNT(*)::int AS count FROM integration.slack_workspaces`,
+          Bun.sql`SELECT COUNT(*)::int AS count FROM integration.teams_tenants`,
+        ]) as [
+          Array<{ count: number }>,
+          Array<{ count: number }>,
+          Array<{ count: number }>,
+          Array<{ count: number }>,
+        ];
+        return Response.json({
+          node: getSystemInfo(),
+          db: {
+            connected: true,
+            version: dbRows[0]?.version ?? null,
+            database: dbRows[0]?.database ?? null,
+            postgresUptimeSince: dbRows[0]?.pg_start_time ?? null,
+          },
+          integrations: {
+            orgs: orgsRow[0]?.count ?? 0,
+            users: usersRow[0]?.count ?? 0,
+            slackWorkspaces: slackRow[0]?.count ?? 0,
+            teamstenants: teamsRow[0]?.count ?? 0,
+          },
+        });
+      },
+    },
+    "/api/admin/metrics": {
+      GET: async (req) => {
+        const session = await requireStaffSession(req);
+        if (session instanceof Response) return session;
+        return Response.json(getMetricsSnapshot());
+      },
+    },
+    "/api/admin/spans": {
+      GET: async (req) => {
+        const session = await requireStaffSession(req);
+        if (session instanceof Response) return session;
+        return Response.json(getRecentSpans(80));
+      },
+    },
+  }),
   fetch(req) {
     return auth.handler(req);
   },

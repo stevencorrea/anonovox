@@ -429,6 +429,18 @@ export async function getSessionOrgMembership(
   return { org, role };
 }
 
+const STAFF_DOMAIN = process.env.STAFF_EMAIL_DOMAIN ?? "anonovox.com";
+
+export async function requireStaffSession(req: Request): Promise<SessionData | Response> {
+  const session = await requireVerifiedSession(req);
+  if (session instanceof Response) return session;
+  const domain = getEmailDomain(session.user.email);
+  if (domain !== STAFF_DOMAIN) {
+    return Response.json({ error: "Staff access required" }, { status: 403 });
+  }
+  return session;
+}
+
 type AdminCheckResult =
   | { session: SessionData; org: OrgRecord; role: "owner" | "admin" }
   | Response;

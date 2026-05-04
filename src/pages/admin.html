@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Internal Admin — anonovox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prata:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/design-system.css" />
+  <style>
+    body { min-height: 100vh; background: var(--bg); }
+
+    .shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 6rem 2rem 6rem;
+    }
+
+    .eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-title {
+      font-family: var(--ff-display);
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-subtitle {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 1rem;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    /* ── Quick stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 0.875rem;
+      padding: 1.25rem 1.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-value.error { color: var(--error); }
+    .stat-value.ok { color: #2d7d46; }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 0.2rem;
+    }
+
+    /* ── Two-column layout ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── KV pairs ── */
+    .kv-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.855rem;
+      gap: 1rem;
+    }
+
+    .kv-key { color: var(--text-secondary); }
+
+    .kv-val {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-ok { background: #d4edda; color: #1a5c2e; }
+    .badge-error { background: #fde8e8; color: var(--error); }
+
+    @media (prefers-color-scheme: dark) {
+      .badge-ok { background: #1a3d24; color: #6fcf97; }
+      .badge-error { background: #3d1a1a; color: #f08080; }
+    }
+
+    /* ── Chart ── */
+    .chart-wrap { position: relative; height: 180px; }
+
+    /* ── Table ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+
+    .data-table th {
+      text-align: left;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      padding: 0 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .data-table td {
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td { border-bottom: none; }
+
+    .data-table tr:hover td { background: var(--surface-alt); }
+
+    .mono { font-family: var(--ff-mono); font-size: 0.78rem; }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .dot-ok { background: #34c759; }
+    .dot-error { background: var(--error); }
+    .dot-unset { background: var(--text-tertiary); }
+
+    /* ── States ── */
+    #loading, #error-state, #access-denied {
+      padding: 4rem 0;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    #content { display: none; }
+
+    .refresh-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.78rem;
+      color: var(--text-tertiary);
+    }
+
+    .refresh-btn {
+      padding: 0.3rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.4rem;
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+
+    .refresh-btn:hover { background: var(--surface-alt); color: var(--text-primary); }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <p class="eyebrow">anonovox platform</p>
+    <h1 class="page-title">Internal Admin</h1>
+    <p class="page-subtitle">System nodes, database connections, and OpenTelemetry data.</p>
+
+    <div id="loading">Loading…</div>
+    <div id="error-state" style="display:none">Failed to load admin data.</div>
+    <div id="access-denied" style="display:none">Staff access required. Sign in with an anonovox account.</div>
+
+    <div id="content">
+      <div class="refresh-bar">
+        <span id="last-refresh">—</span>
+        <button class="refresh-btn" id="refresh-btn">Refresh</button>
+      </div>
+
+      <!-- Quick stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Requests</div>
+          <div class="stat-value" id="stat-requests">—</div>
+          <div class="stat-sub">since last boot</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Error Rate</div>
+          <div class="stat-value" id="stat-error-rate">—</div>
+          <div class="stat-sub">5xx responses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Latency</div>
+          <div class="stat-value" id="stat-avg-latency">—</div>
+          <div class="stat-sub">across all routes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Uptime</div>
+          <div class="stat-value" id="stat-uptime">—</div>
+          <div class="stat-sub" id="stat-hostname">—</div>
+        </div>
+      </div>
+
+      <!-- Node + Database row -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-label">Node</div>
+          <div class="kv-list" id="node-info"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Database</div>
+          <div class="kv-list" id="db-info"></div>
+        </div>
+      </div>
+
+      <!-- Connected integrations -->
+      <div class="card">
+        <div class="card-label">Connected Services</div>
+        <div class="stats-row" id="services-row" style="margin-bottom:0"></div>
+      </div>
+
+      <!-- Request rate chart -->
+      <div class="card">
+        <div class="card-label">Requests / min — last 60 minutes</div>
+        <div class="chart-wrap">
+          <canvas id="requests-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Per-route breakdown -->
+      <div class="card">
+        <div class="card-label">Route Breakdown</div>
+        <table class="data-table" id="routes-table">
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th style="text-align:right">Requests</th>
+              <th style="text-align:right">Errors</th>
+              <th style="text-align:right">Avg ms</th>
+              <th style="text-align:right">P50 ms</th>
+              <th style="text-align:right">P95 ms</th>
+            </tr>
+          </thead>
+          <tbody id="routes-body"></tbody>
+        </table>
+        <p id="routes-empty" style="font-size:0.83rem;color:var(--text-tertiary);margin-top:1rem;display:none">No requests recorded yet.</p>
+      </div>
+
+      <!-- Recent spans -->
+      <div class="card">
+        <div class="card-label">Recent Spans</div>
+        <table class="data-table" id="spans-table">
+          <thead>
+            <tr>
+              <th>Span</th>
+              <th style="text-align:right">Duration</th>
+              <th>Status</th>
+              <th style="text-align:right">Time</th>
+            </tr>
+          </thead>
+          <tbody id="spans-body"></tbody>
+        </table>
+        <p id="spans-empty" style="font-size:0.83rem;color:var(--text-tertiary);margin-top:1rem;display:none">No spans recorded yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./admin.ts"></script>
+</body>
+</html>
