@@ -33,6 +33,14 @@ export async function getOrgByDomain(domain: string) {
   return (rows[0] as { id: string; name: string; slug: string; entraTenantId: string | null }) ?? null;
 }
 
+type EntraMembershipRow = {
+  memberId: string;
+  role: string;
+  organizationId: string;
+  entraTenantId: string | null;
+  memberCreatedAt: string;
+};
+
 export async function ensureOrgMembership(user: {
   id: string;
   email: string;
@@ -134,19 +142,33 @@ export async function handleEntraAccountCreated(account: {
   const allClaims = [...entraRoles, ...entraGroups];
   const tid = typeof claims.tid === "string" ? claims.tid : undefined;
 
-  // Find the org this user belongs to.
   const memberRows = await Bun.sql`
-    SELECT m.id, m.role, m."organizationId", o."entraTenantId"
+    SELECT
+      m.id AS "memberId",
+      m.role,
+      m."organizationId",
+      o."entraTenantId",
+      m."createdAt" AS "memberCreatedAt"
     FROM "member" m
     JOIN "organization" o ON o.id = m."organizationId"
     WHERE m."userId" = ${account.userId}
-    LIMIT 1
-  `;
-  if (!memberRows.length) return;
+  ` as EntraMembershipRow[];
+  const membership = selectEntraMembership(memberRows, null, tid);
+  if (!membership) {
+    await logSsoEvent("sso_membership_ambiguous", account.userId, null, {
+      tid,
+      membershipCount: memberRows.length,
+      source: "entra_signup",
+    });
+    return;
+  }
 
-  const { id: memberId, role: currentRole, organizationId: orgId, entraTenantId: registeredTid } = memberRows[0] as {
-    id: string; role: string; organizationId: string; entraTenantId: string | null;
-  };
+  const {
+    memberId,
+    role: currentRole,
+    organizationId: orgId,
+    entraTenantId: registeredTid,
+  } = membership;
 
   // If the org has a registered tenant, the login's tid must match.
   if (registeredTid && tid && registeredTid !== tid) {
@@ -199,17 +221,32 @@ export async function handleEntraAccountUpdated(account: {
   const tid = typeof claims.tid === "string" ? claims.tid : undefined;
 
   const memberRows = await Bun.sql`
-    SELECT m.id, m.role, m."organizationId", o."entraTenantId"
+    SELECT
+      m.id AS "memberId",
+      m.role,
+      m."organizationId",
+      o."entraTenantId",
+      m."createdAt" AS "memberCreatedAt"
     FROM "member" m
     JOIN "organization" o ON o.id = m."organizationId"
     WHERE m."userId" = ${account.userId}
-    LIMIT 1
-  `;
-  if (!memberRows.length) return;
+  ` as EntraMembershipRow[];
+  const membership = selectEntraMembership(memberRows, null, tid);
+  if (!membership) {
+    await logSsoEvent("sso_membership_ambiguous", account.userId, null, {
+      tid,
+      membershipCount: memberRows.length,
+      source: "entra_login",
+    });
+    return;
+  }
 
-  const { id: memberId, role: currentRole, organizationId: orgId, entraTenantId: registeredTid } = memberRows[0] as {
-    id: string; role: string; organizationId: string; entraTenantId: string | null;
-  };
+  const {
+    memberId,
+    role: currentRole,
+    organizationId: orgId,
+    entraTenantId: registeredTid,
+  } = membership;
 
   if (registeredTid && tid && registeredTid !== tid) {
     await logSsoEvent("sso_tenant_mismatch", account.userId, orgId, {
@@ -288,6 +325,67 @@ function rolePriority(role: string): number {
   }
 }
 
+function selectPreferredMembership<T extends { role: string; memberCreatedAt: string }>(
+  memberships: T[],
+): T | null {
+  const [preferred] = [...memberships].sort((a, b) => {
+    const roleDelta = rolePriority(a.role) - rolePriority(b.role);
+    if (roleDelta !== 0) return roleDelta;
+    return new Date(a.memberCreatedAt).getTime() - new Date(b.memberCreatedAt).getTime();
+  });
+
+  return preferred ?? null;
+}
+
+function selectSessionMembership(
+  memberships: OrgMembershipRow[],
+  activeOrganizationId: string | null,
+): OrgMembershipRow | null {
+  if (!memberships.length) return null;
+
+  const activeMembership = activeOrganizationId
+    ? memberships.find((membership) => membership.id === activeOrganizationId)
+    : null;
+  if (activeMembership) return activeMembership;
+
+  if (memberships.length === 1) return memberships[0] ?? null;
+
+  return selectPreferredMembership(memberships);
+}
+
+function selectEntraMembership(
+  memberships: EntraMembershipRow[],
+  activeOrganizationId: string | null,
+  tenantId: string | undefined,
+): EntraMembershipRow | null {
+  if (!memberships.length) return null;
+
+  const activeMembership = activeOrganizationId
+    ? memberships.find((membership) => membership.organizationId === activeOrganizationId)
+    : null;
+
+  if (tenantId) {
+    const matchingTenantMemberships = memberships.filter((membership) => membership.entraTenantId === tenantId);
+    if (matchingTenantMemberships.length > 0) {
+      return selectPreferredMembership(matchingTenantMemberships);
+    }
+
+    if (activeMembership && (!activeMembership.entraTenantId || activeMembership.entraTenantId === tenantId)) {
+      return activeMembership;
+    }
+
+    const unboundMemberships = memberships.filter((membership) => !membership.entraTenantId);
+    if (unboundMemberships.length === 1) return unboundMemberships[0] ?? null;
+
+    return null;
+  }
+
+  if (activeMembership) return activeMembership;
+  if (memberships.length === 1) return memberships[0] ?? null;
+
+  return selectPreferredMembership(memberships);
+}
+
 function unauthorizedResponse() {
   return Response.json({ error: "Unauthorized" }, { status: 401 });
 }
@@ -321,30 +419,10 @@ export async function getSessionOrgMembership(
 
   if (!memberships.length) return null;
 
-  const activeOrganizationId = getActiveOrganizationId(session);
-  const activeMembership = activeOrganizationId
-    ? memberships.find((membership) => membership.id === activeOrganizationId)
-    : null;
-  if (activeMembership) {
-    const { role, memberCreatedAt: _memberCreatedAt, ...org } = activeMembership;
-    return { org, role };
-  }
-
-  const emailDomain = getEmailDomain(session.user.email);
-  const domainMembership = emailDomain
-    ? memberships.find((membership) => membership.slug === emailDomain)
-    : null;
-  if (domainMembership) {
-    const { role, memberCreatedAt: _memberCreatedAt, ...org } = domainMembership;
-    return { org, role };
-  }
-
-  const [fallbackMembership] = [...memberships].sort((a, b) => {
-    const roleDelta = rolePriority(a.role) - rolePriority(b.role);
-    if (roleDelta !== 0) return roleDelta;
-    return new Date(a.memberCreatedAt).getTime() - new Date(b.memberCreatedAt).getTime();
-  });
-
+  const fallbackMembership = selectSessionMembership(
+    memberships,
+    getActiveOrganizationId(session),
+  );
   if (!fallbackMembership) return null;
 
   const { role, memberCreatedAt: _memberCreatedAt, ...org } = fallbackMembership;
