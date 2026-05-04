@@ -369,5 +369,115 @@ export async function runMigrations() {
     ON integration.teams_tenants (tenant_id)
   `;
 
+  // ── Multi-question surveys ────────────────────────────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.surveys (
+      id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id      TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
+      title       TEXT        NOT NULL,
+      description TEXT,
+      status      TEXT        NOT NULL DEFAULT 'draft'
+                              CHECK (status IN ('draft', 'active', 'closed')),
+      launches_at TIMESTAMPTZ,
+      closes_at   TIMESTAMPTZ,
+      created_by  TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      closed_at   TIMESTAMPTZ
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS surveys_org_created_idx
+      ON reporting.surveys (org_id, created_at DESC)
+  `;
+
+  await Bun.sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS surveys_active_org_idx
+      ON reporting.surveys (org_id)
+      WHERE status = 'active'
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.survey_questions (
+      id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      survey_id  TEXT        NOT NULL REFERENCES reporting.surveys(id) ON DELETE CASCADE,
+      position   INTEGER     NOT NULL,
+      type       TEXT        NOT NULL CHECK (type IN ('text', 'scale', 'choice')),
+      prompt     TEXT        NOT NULL,
+      options    JSONB,
+      required   BOOLEAN     NOT NULL DEFAULT true
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS survey_questions_survey_idx
+      ON reporting.survey_questions (survey_id, position)
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.survey_responses (
+      id           TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      survey_id    TEXT        NOT NULL REFERENCES reporting.surveys(id) ON DELETE CASCADE,
+      org_id       TEXT        NOT NULL,
+      submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS survey_responses_survey_idx
+      ON reporting.survey_responses (survey_id)
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.survey_answers (
+      id          TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+      response_id TEXT NOT NULL REFERENCES reporting.survey_responses(id) ON DELETE CASCADE,
+      question_id TEXT NOT NULL REFERENCES reporting.survey_questions(id) ON DELETE CASCADE,
+      value       TEXT,
+      PRIMARY KEY (response_id, question_id)
+    )
+  `;
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS private.survey_identity (
+      id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      survey_id   TEXT        NOT NULL,
+      response_id TEXT        NOT NULL UNIQUE REFERENCES reporting.survey_responses(id) ON DELETE CASCADE,
+      user_id     TEXT        NOT NULL,
+      user_email  TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS survey_identity_survey_user_idx
+      ON private.survey_identity (survey_id, user_id)
+  `;
+
+  await Bun.sql`GRANT SELECT ON reporting.surveys TO reporter`;
+  await Bun.sql`GRANT SELECT ON reporting.survey_questions TO reporter`;
+  await Bun.sql`GRANT SELECT ON reporting.survey_responses TO reporter`;
+  await Bun.sql`GRANT SELECT ON reporting.survey_answers TO reporter`;
+
+  // ── Insights history for trend/delta comparisons ──────────────────────────
+
+  await Bun.sql`
+    CREATE TABLE IF NOT EXISTS reporting.insights_history (
+      id             TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id         TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
+      content        JSONB       NOT NULL,
+      feedback_count INTEGER     NOT NULL DEFAULT 0,
+      generated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await Bun.sql`
+    CREATE INDEX IF NOT EXISTS insights_history_org_generated_idx
+      ON reporting.insights_history (org_id, generated_at DESC)
+  `;
+
+  await Bun.sql`GRANT SELECT ON reporting.insights_history TO reporter`;
+
   console.log("Migrations complete.");
 }

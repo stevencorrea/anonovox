@@ -100,10 +100,60 @@ export async function refreshInsights(orgId: string, orgDomain: string): Promise
   const items = rows.map((r: { content: string }) => r.content);
   const insights = await generateInsights(items);
   const now = new Date().toISOString();
-  await Bun.sql`
-    INSERT INTO reporting.org_insights (org_id, content, generated_at)
-    VALUES (${orgId}, ${JSON.stringify(insights)}::jsonb, ${now}::timestamptz)
-    ON CONFLICT (org_id) DO UPDATE SET content = EXCLUDED.content, generated_at = EXCLUDED.generated_at
-  `;
+  await Promise.all([
+    Bun.sql`
+      INSERT INTO reporting.org_insights (org_id, content, generated_at)
+      VALUES (${orgId}, ${JSON.stringify(insights)}::jsonb, ${now}::timestamptz)
+      ON CONFLICT (org_id) DO UPDATE SET content = EXCLUDED.content, generated_at = EXCLUDED.generated_at
+    `,
+    Bun.sql`
+      INSERT INTO reporting.insights_history (org_id, content, feedback_count, generated_at)
+      VALUES (${orgId}, ${JSON.stringify(insights)}::jsonb, ${items.length}, ${now}::timestamptz)
+    `,
+  ]);
   return { insights, generated_at: now };
+}
+
+export interface InsightsDelta {
+  sentiment: { positive: number; neutral: number; negative: number };
+  newThemes: string[];
+  droppedThemes: string[];
+}
+
+export async function getInsightsDelta(orgId: string, current: InsightsResult): Promise<InsightsDelta | null> {
+  const rows = await Bun.sql`
+    SELECT content FROM reporting.insights_history
+    WHERE org_id = ${orgId}
+    ORDER BY generated_at DESC
+    LIMIT 2
+  ` as Array<{ content: InsightsResult }>;
+  if (rows.length < 2) return null;
+  const prev = normalizeInsightsResult(rows[1].content);
+  const currentThemes = new Set(current.themes);
+  const prevThemes = new Set(prev.themes);
+  return {
+    sentiment: {
+      positive: current.sentiment.positive - prev.sentiment.positive,
+      neutral: current.sentiment.neutral - prev.sentiment.neutral,
+      negative: current.sentiment.negative - prev.sentiment.negative,
+    },
+    newThemes: current.themes.filter((t) => !prevThemes.has(t)),
+    droppedThemes: prev.themes.filter((t) => !currentThemes.has(t)),
+  };
+}
+
+export async function getInsightsHistory(orgId: string, limit = 10): Promise<Array<{ id: string; insights: InsightsResult; feedback_count: number; generated_at: string }>> {
+  const rows = await Bun.sql`
+    SELECT id, content, feedback_count, generated_at
+    FROM reporting.insights_history
+    WHERE org_id = ${orgId}
+    ORDER BY generated_at DESC
+    LIMIT ${limit}
+  ` as Array<{ id: string; content: unknown; feedback_count: number; generated_at: string }>;
+  return rows.map((r) => ({
+    id: r.id,
+    insights: normalizeInsightsResult(r.content),
+    feedback_count: r.feedback_count,
+    generated_at: r.generated_at,
+  }));
 }
