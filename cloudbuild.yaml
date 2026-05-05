@@ -1,0 +1,64 @@
+substitutions:
+  _REGION: us-west1
+  _SERVICE: anonovox
+  _AR_REPO: anonovox
+  _IMAGE_NAME: app
+  _SQL_INSTANCE: anonovox:us-west1:anonovox-db
+  _RUNTIME_SERVICE_ACCOUNT: anonovox-runtime@anonovox.iam.gserviceaccount.com
+  _DB_NAME: anonovox
+  _DB_USER: anonovoxapp
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA"
+
+        gcloud run deploy "${_SERVICE}" \
+          --image="${IMAGE}" \
+          --region="${_REGION}" \
+          --platform=managed \
+          --allow-unauthenticated \
+          --service-account="${_RUNTIME_SERVICE_ACCOUNT}" \
+          --add-cloudsql-instances="${_SQL_INSTANCE}" \
+          --min-instances=1 \
+          --max-instances=4 \
+          --memory=512Mi \
+          --cpu=1 \
+          --remove-env-vars="DATABASE_URL,POSTGRES_URL,PGURL,PG_URL" \
+          --remove-secrets="DATABASE_URL,POSTGRES_URL,PGURL,PG_URL" \
+          --update-env-vars="NODE_ENV=production,PGHOST=/cloudsql/${_SQL_INSTANCE},PGPORT=5432,PGUSERNAME=${_DB_USER},PGDATABASE=${_DB_NAME}" \
+          --update-secrets="\
+            PGPASSWORD=PGPASSWORD:latest,\
+            BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:latest,\
+            BETTER_AUTH_URL=BETTER_AUTH_URL:latest,\
+            ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,\
+            RESEND_API_KEY=RESEND_API_KEY:latest,\
+            EMAIL_FROM=EMAIL_FROM:latest,\
+            MICROSOFT_CLIENT_ID=MICROSOFT_CLIENT_ID:latest,\
+            MICROSOFT_CLIENT_SECRET=MICROSOFT_CLIENT_SECRET:latest,\
+            MICROSOFT_TENANT_ID=MICROSOFT_TENANT_ID:latest,\
+            ENTRA_ADMIN_ROLE_IDS=ENTRA_ADMIN_ROLE_IDS:latest,\
+            SLACK_CLIENT_ID=SLACK_CLIENT_ID:latest,\
+            SLACK_CLIENT_SECRET=SLACK_CLIENT_SECRET:latest,\
+            SLACK_SIGNING_SECRET=SLACK_SIGNING_SECRET:latest,\
+            TEAMS_APP_ID=TEAMS_APP_ID:latest,\
+            TEAMS_APP_SECRET=TEAMS_APP_SECRET:latest,\
+            SCHEDULER_SECRET=SCHEDULER_SECRET:latest"
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA

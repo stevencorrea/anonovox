@@ -149,6 +149,27 @@ Observability:
 
 The included compose file points this at the local Jaeger container.
 
+**Cloud Run Deploy**
+
+The app is currently being managed directly in Google Cloud / Cloud Run.
+
+If you want a scripted deploy path later, the repo includes an optional [`cloudbuild.yaml`](/Users/steven/Documents/anonovox/cloudbuild.yaml) that:
+- builds and pushes the container image
+- deploys to Cloud Run
+- removes stale `DATABASE_URL`-style config from the service
+- sets Cloud SQL socket-style `PG*` variables instead
+
+Required substitutions and secrets:
+- substitutions: `_REGION`, `_SERVICE`, `_AR_REPO`, `_SQL_INSTANCE`, `_RUNTIME_SERVICE_ACCOUNT`, `_DB_NAME`, `_DB_USER`
+- Secret Manager: `PGPASSWORD`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `SCHEDULER_SECRET`, plus any integration/API secrets you use
+
+Example:
+
+```sh
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions=_REGION=us-west1,_SERVICE=anonovox,_AR_REPO=anonovox,_SQL_INSTANCE=anonovox:us-west1:anonovox-db,_RUNTIME_SERVICE_ACCOUNT=anonovox-runtime@YOUR_PROJECT_ID.iam.gserviceaccount.com,_DB_NAME=anonovox,_DB_USER=anonovoxapp
+```
+
 **Feature Notes**
 - Auth, sessions, and invites are handled by Better Auth in [`src/server/auth.ts`](/Users/steven/Documents/anonovox/src/server/auth.ts).
 - Org resolution, verified-session checks, and Entra tenant mapping live in [`src/server/org.ts`](/Users/steven/Documents/anonovox/src/server/org.ts).
