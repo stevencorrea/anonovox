@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { sql } from "./db";
 
 const client = new Anthropic();
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -79,7 +80,7 @@ async function generateInsights(items: string[]): Promise<InsightsResult> {
 }
 
 export async function getCachedInsights(orgId: string): Promise<{ insights: InsightsResult; generated_at: string } | null> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT content, generated_at FROM reporting.org_insights WHERE org_id = ${orgId}
   `;
   if (!rows.length) return null;
@@ -90,7 +91,7 @@ export async function getCachedInsights(orgId: string): Promise<{ insights: Insi
 }
 
 export async function refreshInsights(orgId: string, orgDomain: string): Promise<{ insights: InsightsResult; generated_at: string } | null> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT content FROM reporting.feedback_responses
     WHERE org_domain = ${orgDomain}
     ORDER BY created_at DESC
@@ -101,12 +102,12 @@ export async function refreshInsights(orgId: string, orgDomain: string): Promise
   const insights = await generateInsights(items);
   const now = new Date().toISOString();
   await Promise.all([
-    Bun.sql`
+    sql`
       INSERT INTO reporting.org_insights (org_id, content, generated_at)
       VALUES (${orgId}, ${JSON.stringify(insights)}::jsonb, ${now}::timestamptz)
       ON CONFLICT (org_id) DO UPDATE SET content = EXCLUDED.content, generated_at = EXCLUDED.generated_at
     `,
-    Bun.sql`
+    sql`
       INSERT INTO reporting.insights_history (org_id, content, feedback_count, generated_at)
       VALUES (${orgId}, ${JSON.stringify(insights)}::jsonb, ${items.length}, ${now}::timestamptz)
     `,
@@ -121,7 +122,7 @@ export interface InsightsDelta {
 }
 
 export async function getInsightsDelta(orgId: string, current: InsightsResult): Promise<InsightsDelta | null> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT content FROM reporting.insights_history
     WHERE org_id = ${orgId}
     ORDER BY generated_at DESC
@@ -143,7 +144,7 @@ export async function getInsightsDelta(orgId: string, current: InsightsResult): 
 }
 
 export async function getInsightsHistory(orgId: string, limit = 10): Promise<Array<{ id: string; insights: InsightsResult; feedback_count: number; generated_at: string }>> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT id, content, feedback_count, generated_at
     FROM reporting.insights_history
     WHERE org_id = ${orgId}

@@ -1,4 +1,5 @@
 import { refreshInsights } from "./insights";
+import { sql } from "./db";
 import { sendBatchDigest } from "./mailer";
 
 // How many hours must pass between batch digests for an org (23h = nightly cadence)
@@ -47,7 +48,7 @@ async function runBatchJobOnce() {
   console.log("[scheduler] Running nightly batch job…");
   try {
     // All orgs that have at least one admin/owner member with an email
-    const orgs = await Bun.sql`
+    const orgs = await sql`
       SELECT DISTINCT o.id, o.name, o.slug
       FROM "organization" o
       JOIN "member" m ON m."organizationId" = o.id
@@ -72,7 +73,7 @@ async function runBatchJobOnce() {
 
 async function tryBatchOrg(org: { id: string; name: string; slug: string }): Promise<boolean> {
   // Check when we last sent a batch for this org
-  const lastRows = await Bun.sql`
+  const lastRows = await sql`
     SELECT sent_at FROM reporting.batch_deliveries
     WHERE org_id = ${org.id} AND status = 'sent'
     ORDER BY sent_at DESC LIMIT 1
@@ -87,7 +88,7 @@ async function tryBatchOrg(org: { id: string; name: string; slug: string }): Pro
 
   // Count new feedback since the last batch (or all-time if none)
   const since = lastSentAt ?? new Date(0);
-  const countRows = await Bun.sql`
+  const countRows = await sql`
     SELECT COUNT(*)::int AS count FROM reporting.feedback_responses
     WHERE org_domain = ${org.slug}
     AND created_at > ${since.toISOString()}::timestamptz
@@ -96,7 +97,7 @@ async function tryBatchOrg(org: { id: string; name: string; slug: string }): Pro
   if (feedbackCount === 0) return false;
 
   // Get all admin/owner emails for this org
-  const adminRows = await Bun.sql`
+  const adminRows = await sql`
     SELECT DISTINCT u.email, u.name FROM "user" u
     JOIN "member" m ON m."userId" = u.id
     WHERE m."organizationId" = ${org.id}
@@ -132,7 +133,7 @@ async function tryBatchOrg(org: { id: string; name: string; slug: string }): Pro
 
   // Record the delivery regardless of individual send results
   const status = successCount > 0 ? "sent" : "failed";
-  await Bun.sql`
+  await sql`
     INSERT INTO reporting.batch_deliveries (org_id, recipient_count, feedback_count, status, error)
     VALUES (${org.id}, ${successCount}, ${feedbackCount}, ${status}, ${lastError})
   `;

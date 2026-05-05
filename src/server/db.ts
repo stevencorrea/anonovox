@@ -1,14 +1,29 @@
+import { SQL } from "bun";
 import type { PoolConfig } from "pg";
 
 const IS_HOT_RELOAD = Bun.argv.includes("--hot");
 const IS_PRODUCTION_RUNTIME = process.env.NODE_ENV === "production" && !IS_HOT_RELOAD;
+
+type ResolvedPgConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+};
 
 function readTrimmedEnv(name: string): string | null {
   const value = process.env[name]?.trim();
   return value ? value : null;
 }
 
-function readPgEnvConfig(): PoolConfig | null {
+function normalizeSqlHostname(host: string, port: number): string {
+  if (!host.startsWith("/cloudsql/")) return host;
+  const socketSuffix = `/.s.PGSQL.${port}`;
+  return host.endsWith(socketSuffix) ? host : `${host}${socketSuffix}`;
+}
+
+function readPgEnvConfig(): ResolvedPgConfig | null {
   const host = readTrimmedEnv("PGHOST");
   const user = readTrimmedEnv("PGUSERNAME") ?? readTrimmedEnv("PGUSER");
   const password = process.env.PGPASSWORD ?? "";
@@ -42,6 +57,41 @@ function readPgEnvConfig(): PoolConfig | null {
   };
 }
 
+function getSqlClientConfig(): string | { hostname: string; port: number; username: string; password: string; database: string } {
+  const pgEnvConfig = readPgEnvConfig();
+
+  if (IS_PRODUCTION_RUNTIME && pgEnvConfig) {
+    return {
+      hostname: normalizeSqlHostname(pgEnvConfig.host!, pgEnvConfig.port!),
+      port: pgEnvConfig.port!,
+      username: pgEnvConfig.user!,
+      password: pgEnvConfig.password ?? "",
+      database: pgEnvConfig.database!,
+    };
+  }
+
+  const connectionString = readTrimmedEnv("DATABASE_URL");
+  if (connectionString) {
+    return connectionString;
+  }
+
+  if (pgEnvConfig) {
+    return {
+      hostname: normalizeSqlHostname(pgEnvConfig.host!, pgEnvConfig.port!),
+      port: pgEnvConfig.port!,
+      username: pgEnvConfig.user!,
+      password: pgEnvConfig.password ?? "",
+      database: pgEnvConfig.database!,
+    };
+  }
+
+  throw new Error(
+    IS_PRODUCTION_RUNTIME
+      ? "Database configuration missing. Set DATABASE_URL or PGHOST/PGUSERNAME/PGPASSWORD/PGDATABASE."
+      : "DATABASE_URL is required for local development.",
+  );
+}
+
 export function getDatabasePoolConfig(): PoolConfig {
   const pgEnvConfig = readPgEnvConfig();
 
@@ -64,6 +114,11 @@ export function getDatabasePoolConfig(): PoolConfig {
       : "DATABASE_URL is required for local development.",
   );
 }
+
+const sqlClientConfig = getSqlClientConfig();
+export const sql = typeof sqlClientConfig === "string"
+  ? new SQL(sqlClientConfig)
+  : new SQL(sqlClientConfig);
 
 export function validateProductionDatabaseConfig() {
   if (!IS_PRODUCTION_RUNTIME) return;

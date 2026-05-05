@@ -1,4 +1,5 @@
 import { auth } from "./auth";
+import { sql } from "./db";
 
 const PERSONAL_DOMAINS = new Set([
   "gmail.com",
@@ -29,7 +30,7 @@ function formatOrgName(domain: string): string {
 export async function getOrgByDomain(domain: string) {
   const normalizedDomain = normalizeDomain(domain);
   const rows =
-    await Bun.sql`SELECT id, name, slug, "entraTenantId" FROM "organization" WHERE slug = ${normalizedDomain} LIMIT 1`;
+    await sql`SELECT id, name, slug, "entraTenantId" FROM "organization" WHERE slug = ${normalizedDomain} LIMIT 1`;
   return (rows[0] as { id: string; name: string; slug: string; entraTenantId: string | null }) ?? null;
 }
 
@@ -51,22 +52,22 @@ export async function ensureOrgMembership(user: {
   const org = await getOrgByDomain(domain);
   if (!org) {
     const orgId = crypto.randomUUID();
-    await Bun.sql`
+    await sql`
       INSERT INTO "organization" (id, name, slug, "createdAt")
       VALUES (${orgId}, ${formatOrgName(domain)}, ${domain}, NOW())
     `;
-    await Bun.sql`
+    await sql`
       INSERT INTO "member" (id, "organizationId", "userId", role, "createdAt")
       VALUES (${crypto.randomUUID()}, ${orgId}, ${user.id}, 'owner', NOW())
     `;
     await logSsoEvent("org_provisioned", user.id, orgId, { domain });
   } else {
     const existing =
-      await Bun.sql`SELECT id FROM "member" WHERE "organizationId" = ${org.id} AND "userId" = ${user.id}`;
+      await sql`SELECT id FROM "member" WHERE "organizationId" = ${org.id} AND "userId" = ${user.id}`;
     if (!existing.length) {
       // If a pending invitation exists for this user+org, don't auto-add them as 'member'.
       // The correct role will be applied when they accept the invitation.
-      const pending = await Bun.sql`
+      const pending = await sql`
         SELECT id FROM "invitation"
         WHERE email = ${user.email}
           AND "organizationId" = ${org.id}
@@ -76,7 +77,7 @@ export async function ensureOrgMembership(user: {
       `;
       if (pending.length > 0) return;
 
-      await Bun.sql`
+      await sql`
         INSERT INTO "member" (id, "organizationId", "userId", role, "createdAt")
         VALUES (${crypto.randomUUID()}, ${org.id}, ${user.id}, 'member', NOW())
       `;
@@ -142,7 +143,7 @@ export async function handleEntraAccountCreated(account: {
   const allClaims = [...entraRoles, ...entraGroups];
   const tid = typeof claims.tid === "string" ? claims.tid : undefined;
 
-  const memberRows = await Bun.sql`
+  const memberRows = await sql`
     SELECT
       m.id AS "memberId",
       m.role,
@@ -181,7 +182,7 @@ export async function handleEntraAccountCreated(account: {
 
   // Store the Entra tenant ID on the org if not already set.
   if (tid && !registeredTid) {
-    await Bun.sql`
+    await sql`
       UPDATE "organization" SET "entraTenantId" = ${tid}
       WHERE id = ${orgId}
     `;
@@ -191,7 +192,7 @@ export async function handleEntraAccountCreated(account: {
   if (currentRole !== "owner") {
     const targetRole = isEntraAdmin(allClaims) ? "admin" : "member";
     if (targetRole !== currentRole) {
-      await Bun.sql`UPDATE "member" SET role = ${targetRole} WHERE id = ${memberId}`;
+      await sql`UPDATE "member" SET role = ${targetRole} WHERE id = ${memberId}`;
       await logSsoEvent("role_assigned", account.userId, orgId, {
         from: currentRole,
         to: targetRole,
@@ -220,7 +221,7 @@ export async function handleEntraAccountUpdated(account: {
   const allClaims = [...entraRoles, ...entraGroups];
   const tid = typeof claims.tid === "string" ? claims.tid : undefined;
 
-  const memberRows = await Bun.sql`
+  const memberRows = await sql`
     SELECT
       m.id AS "memberId",
       m.role,
@@ -257,7 +258,7 @@ export async function handleEntraAccountUpdated(account: {
   }
 
   if (tid && !registeredTid) {
-    await Bun.sql`
+    await sql`
       UPDATE "organization" SET "entraTenantId" = ${tid}
       WHERE id = ${orgId}
     `;
@@ -266,7 +267,7 @@ export async function handleEntraAccountUpdated(account: {
   if (currentRole !== "owner") {
     const targetRole = isEntraAdmin(allClaims) ? "admin" : "member";
     if (targetRole !== currentRole) {
-      await Bun.sql`UPDATE "member" SET role = ${targetRole} WHERE id = ${memberId}`;
+      await sql`UPDATE "member" SET role = ${targetRole} WHERE id = ${memberId}`;
       await logSsoEvent("role_assigned", account.userId, orgId, {
         from: currentRole,
         to: targetRole,
@@ -287,7 +288,7 @@ export async function logSsoEvent(
   metadata: Record<string, unknown> = {},
 ) {
   try {
-    await Bun.sql`
+    await sql`
       INSERT INTO private.sso_audit_log (event, user_id, org_id, metadata)
       VALUES (${event}, ${userId}, ${orgId}, ${JSON.stringify(metadata)}::jsonb)
     `;
@@ -297,7 +298,7 @@ export async function logSsoEvent(
 }
 
 export async function setOrgEntraTenant(orgId: string, tenantId: string | null) {
-  await Bun.sql`UPDATE "organization" SET "entraTenantId" = ${tenantId} WHERE id = ${orgId}`;
+  await sql`UPDATE "organization" SET "entraTenantId" = ${tenantId} WHERE id = ${orgId}`;
 }
 
 type SessionData = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
@@ -404,7 +405,7 @@ export async function requireVerifiedSession(req: Request): Promise<SessionData 
 export async function getSessionOrgMembership(
   session: SessionData,
 ): Promise<{ org: OrgRecord; role: string } | null> {
-  const memberships = await Bun.sql`
+  const memberships = await sql`
     SELECT
       o.id,
       o.name,

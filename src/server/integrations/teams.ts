@@ -1,3 +1,5 @@
+import { sql } from "../db";
+
 // Microsoft Teams bot integration.
 //
 // Auth model: the Bot Framework signs every inbound request with a JWT issued
@@ -661,7 +663,7 @@ export async function sendTeamsReply(activity: TeamsActivity, text: string): Pro
 export async function getOrgByTenantId(
   tenantId: string,
 ): Promise<{ orgId: string; orgSlug: string } | null> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT id AS org_id, slug AS org_slug FROM "organization"
     WHERE "entraTenantId" = ${tenantId}
     UNION
@@ -680,7 +682,7 @@ export async function getOrgByTenantId(
 
 export async function saveTeamsTenant(orgId: string, tenantId: string): Promise<void> {
   try {
-    await Bun.sql`
+    await sql`
       INSERT INTO integration.teams_tenants (org_id, tenant_id)
       VALUES (${orgId}, ${tenantId})
       ON CONFLICT (org_id) DO UPDATE
@@ -695,21 +697,21 @@ export async function saveTeamsTenant(orgId: string, tenantId: string): Promise<
 }
 
 export async function deleteTeamsTenant(orgId: string): Promise<void> {
-  await Bun.sql`DELETE FROM integration.teams_tenants WHERE org_id = ${orgId}`;
+  await sql`DELETE FROM integration.teams_tenants WHERE org_id = ${orgId}`;
 }
 
 // Returns the Teams tenant ID and whether it came from SSO config or manual link.
 export async function getTeamsConnectionByOrg(
   orgId: string,
 ): Promise<{ tenantId: string; source: "sso" | "manual" } | null> {
-  const ssoRows = await Bun.sql`
+  const ssoRows = await sql`
     SELECT "entraTenantId" FROM "organization"
     WHERE id = ${orgId} AND "entraTenantId" IS NOT NULL
     LIMIT 1
   `;
   if (ssoRows[0]) return { tenantId: ssoRows[0].entraTenantId, source: "sso" };
 
-  const manualRows = await Bun.sql`
+  const manualRows = await sql`
     SELECT tenant_id FROM integration.teams_tenants WHERE org_id = ${orgId} LIMIT 1
   `;
   if (manualRows[0]) return { tenantId: manualRows[0].tenant_id, source: "manual" };

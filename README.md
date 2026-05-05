@@ -78,6 +78,12 @@ PGPASSWORD=replace-with-your-db-password
 PGDATABASE=anonovox
 ```
 
+Set `PGHOST` to the raw Cloud SQL socket directory that Google provides, for example:
+
+```env
+PGHOST=/cloudsql/anonovox:us-west1:anonovox-db
+```
+
 That production-only path leaves the local Docker Compose flow unchanged.
 
 Email and digests:

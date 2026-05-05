@@ -1,3 +1,5 @@
+import { sql } from "./db";
+
 /**
  * Runs all database migrations on startup.
  *
@@ -15,7 +17,7 @@
 export async function runMigrations() {
   // ── Better Auth core tables (public schema) ───────────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS "user" (
       "id"            TEXT        PRIMARY KEY,
       "name"          TEXT        NOT NULL,
@@ -27,7 +29,7 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS "session" (
       "id"          TEXT        PRIMARY KEY,
       "expiresAt"   TIMESTAMPTZ NOT NULL,
@@ -40,11 +42,11 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS "session_userId_idx" ON "session" ("userId")
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS "account" (
       "id"                    TEXT        PRIMARY KEY,
       "accountId"             TEXT        NOT NULL,
@@ -62,11 +64,11 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS "account_userId_idx" ON "account" ("userId")
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS "verification" (
       "id"          TEXT        PRIMARY KEY,
       "identifier"  TEXT        NOT NULL,
@@ -77,18 +79,18 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS "verification_identifier_idx" ON "verification" ("identifier")
   `;
 
   // ── Schemas ───────────────────────────────────────────────────────────────
 
-  await Bun.sql`CREATE SCHEMA IF NOT EXISTS reporting`;
-  await Bun.sql`CREATE SCHEMA IF NOT EXISTS private`;
+  await sql`CREATE SCHEMA IF NOT EXISTS reporting`;
+  await sql`CREATE SCHEMA IF NOT EXISTS private`;
 
   // ── reporting.feedback_responses (no PII — safe for dashboards) ──────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.feedback_responses (
       id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       content    TEXT        NOT NULL,
@@ -99,7 +101,7 @@ export async function runMigrations() {
 
   // ── private.feedback_identity (PII — restricted) ─────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS private.feedback_identity (
       id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       response_id TEXT        NOT NULL
@@ -113,7 +115,7 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS feedback_identity_response_id_idx
       ON private.feedback_identity (response_id)
   `;
@@ -121,7 +123,7 @@ export async function runMigrations() {
   // ── reporter role ─────────────────────────────────────────────────────────
   // Create the role if it doesn't exist, then scope its access to reporting.* only.
 
-  await Bun.sql`
+  await sql`
     DO $$
     BEGIN
       IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'reporter') THEN
@@ -131,13 +133,13 @@ export async function runMigrations() {
     $$
   `;
 
-  await Bun.sql`GRANT USAGE ON SCHEMA reporting TO reporter`;
-  await Bun.sql`GRANT SELECT ON reporting.feedback_responses TO reporter`;
-  await Bun.sql`REVOKE ALL ON SCHEMA private FROM reporter`;
+  await sql`GRANT USAGE ON SCHEMA reporting TO reporter`;
+  await sql`GRANT SELECT ON reporting.feedback_responses TO reporter`;
+  await sql`REVOKE ALL ON SCHEMA private FROM reporter`;
 
   // ── Better Auth organization plugin tables ────────────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS "organization" (
       "id"        TEXT        PRIMARY KEY,
       "name"      TEXT        NOT NULL,
@@ -148,7 +150,7 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS "member" (
       "id"             TEXT        PRIMARY KEY,
       "organizationId" TEXT        NOT NULL REFERENCES "organization"("id") ON DELETE CASCADE,
@@ -158,15 +160,15 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS "member_org_user_idx" ON "member" ("organizationId", "userId")
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS "member_userId_idx" ON "member" ("userId")
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS "invitation" (
       "id"             TEXT        PRIMARY KEY,
       "organizationId" TEXT        NOT NULL REFERENCES "organization"("id") ON DELETE CASCADE,
@@ -178,17 +180,17 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS "invitation_org_idx" ON "invitation" ("organizationId")
   `;
 
-  await Bun.sql`
+  await sql`
     ALTER TABLE "session" ADD COLUMN IF NOT EXISTS "activeOrganizationId" TEXT
   `;
 
   // ── Dashboard tables ──────────────────────────────────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.org_insights (
       org_id       TEXT        PRIMARY KEY,
       content      JSONB       NOT NULL,
@@ -196,7 +198,7 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.leadership_responses (
       id           TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       org_id       TEXT        NOT NULL,
@@ -207,17 +209,17 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS leadership_responses_org_id_idx
       ON reporting.leadership_responses (org_id)
   `;
 
-  await Bun.sql`GRANT SELECT ON reporting.org_insights TO reporter`;
-  await Bun.sql`GRANT SELECT ON reporting.leadership_responses TO reporter`;
+  await sql`GRANT SELECT ON reporting.org_insights TO reporter`;
+  await sql`GRANT SELECT ON reporting.leadership_responses TO reporter`;
 
   // ── Structured feedback polls ────────────────────────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.structured_polls (
       id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       org_id      TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
@@ -230,18 +232,18 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS structured_polls_active_org_idx
       ON reporting.structured_polls (org_id)
       WHERE status = 'active'
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS structured_polls_org_created_idx
       ON reporting.structured_polls (org_id, created_at DESC)
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.structured_poll_responses (
       id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       poll_id     TEXT        NOT NULL REFERENCES reporting.structured_polls(id) ON DELETE CASCADE,
@@ -252,12 +254,12 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS structured_poll_responses_poll_idx
       ON reporting.structured_poll_responses (poll_id, updated_at DESC)
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS private.structured_poll_identity (
       id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       poll_id     TEXT        NOT NULL REFERENCES reporting.structured_polls(id) ON DELETE CASCADE,
@@ -269,26 +271,26 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS structured_poll_identity_poll_user_idx
       ON private.structured_poll_identity (poll_id, user_id)
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS structured_poll_identity_response_idx
       ON private.structured_poll_identity (response_id)
   `;
 
-  await Bun.sql`GRANT SELECT ON reporting.structured_polls TO reporter`;
-  await Bun.sql`GRANT SELECT ON reporting.structured_poll_responses TO reporter`;
+  await sql`GRANT SELECT ON reporting.structured_polls TO reporter`;
+  await sql`GRANT SELECT ON reporting.structured_poll_responses TO reporter`;
 
   // ── Entra SSO: tenant ID on org + audit log ───────────────────────────────
 
-  await Bun.sql`
+  await sql`
     ALTER TABLE "organization" ADD COLUMN IF NOT EXISTS "entraTenantId" TEXT
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS private.sso_audit_log (
       id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       event      TEXT        NOT NULL,
@@ -299,17 +301,17 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS sso_audit_log_user_id_idx ON private.sso_audit_log (user_id)
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS sso_audit_log_created_at_idx ON private.sso_audit_log (created_at DESC)
   `;
 
   // ── Email batch delivery tracking ─────────────────────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.batch_deliveries (
       id              TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       org_id          TEXT        NOT NULL,
@@ -321,22 +323,22 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS batch_deliveries_org_sent_idx
       ON reporting.batch_deliveries (org_id, sent_at DESC)
   `;
 
-  await Bun.sql`GRANT SELECT ON reporting.batch_deliveries TO reporter`;
+  await sql`GRANT SELECT ON reporting.batch_deliveries TO reporter`;
 
   // ── Remove legacy table (migrated to split schema above) ─────────────────
 
-  await Bun.sql`DROP TABLE IF EXISTS public.feedback`;
+  await sql`DROP TABLE IF EXISTS public.feedback`;
 
   // ── Slack integration ─────────────────────────────────────────────────────
 
-  await Bun.sql`CREATE SCHEMA IF NOT EXISTS integration`;
+  await sql`CREATE SCHEMA IF NOT EXISTS integration`;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS integration.slack_workspaces (
       id                 TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       org_id             TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
@@ -348,14 +350,14 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     ALTER TABLE private.feedback_identity
       ADD COLUMN IF NOT EXISTS submission_source TEXT DEFAULT 'web'
   `;
 
   // ── Teams integration ─────────────────────────────────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS integration.teams_tenants (
       id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       org_id     TEXT        NOT NULL UNIQUE REFERENCES "organization"(id) ON DELETE CASCADE,
@@ -364,14 +366,14 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS teams_tenants_tenant_id_key
     ON integration.teams_tenants (tenant_id)
   `;
 
   // ── Multi-question surveys ────────────────────────────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.surveys (
       id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       org_id      TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
@@ -387,18 +389,18 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS surveys_org_created_idx
       ON reporting.surveys (org_id, created_at DESC)
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS surveys_active_org_idx
       ON reporting.surveys (org_id)
       WHERE status = 'active'
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.survey_questions (
       id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       survey_id  TEXT        NOT NULL REFERENCES reporting.surveys(id) ON DELETE CASCADE,
@@ -410,12 +412,12 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS survey_questions_survey_idx
       ON reporting.survey_questions (survey_id, position)
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.survey_responses (
       id           TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       survey_id    TEXT        NOT NULL REFERENCES reporting.surveys(id) ON DELETE CASCADE,
@@ -424,12 +426,12 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS survey_responses_survey_idx
       ON reporting.survey_responses (survey_id)
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.survey_answers (
       id          TEXT NOT NULL DEFAULT gen_random_uuid()::text,
       response_id TEXT NOT NULL REFERENCES reporting.survey_responses(id) ON DELETE CASCADE,
@@ -439,7 +441,7 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS private.survey_identity (
       id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       survey_id   TEXT        NOT NULL,
@@ -450,19 +452,19 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS survey_identity_survey_user_idx
       ON private.survey_identity (survey_id, user_id)
   `;
 
-  await Bun.sql`GRANT SELECT ON reporting.surveys TO reporter`;
-  await Bun.sql`GRANT SELECT ON reporting.survey_questions TO reporter`;
-  await Bun.sql`GRANT SELECT ON reporting.survey_responses TO reporter`;
-  await Bun.sql`GRANT SELECT ON reporting.survey_answers TO reporter`;
+  await sql`GRANT SELECT ON reporting.surveys TO reporter`;
+  await sql`GRANT SELECT ON reporting.survey_questions TO reporter`;
+  await sql`GRANT SELECT ON reporting.survey_responses TO reporter`;
+  await sql`GRANT SELECT ON reporting.survey_answers TO reporter`;
 
   // ── Insights history for trend/delta comparisons ──────────────────────────
 
-  await Bun.sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS reporting.insights_history (
       id             TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       org_id         TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
@@ -472,12 +474,12 @@ export async function runMigrations() {
     )
   `;
 
-  await Bun.sql`
+  await sql`
     CREATE INDEX IF NOT EXISTS insights_history_org_generated_idx
       ON reporting.insights_history (org_id, generated_at DESC)
   `;
 
-  await Bun.sql`GRANT SELECT ON reporting.insights_history TO reporter`;
+  await sql`GRANT SELECT ON reporting.insights_history TO reporter`;
 
   console.log("Migrations complete.");
 }

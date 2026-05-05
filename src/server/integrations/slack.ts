@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { sql } from "../db";
 
 export class SlackWorkspaceClaimedError extends Error {
   constructor(teamId: string) {
@@ -76,7 +77,7 @@ export function verifyState(state: string): string | null {
 export async function getSlackWorkspace(
   teamId: string,
 ): Promise<{ orgId: string; orgSlug: string } | null> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT sw.org_id, o.slug AS org_slug
     FROM integration.slack_workspaces sw
     JOIN "organization" o ON o.id = sw.org_id
@@ -94,7 +95,7 @@ export async function saveSlackWorkspace(
   accessToken: string,
   installedBy: string | null,
 ): Promise<void> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     INSERT INTO integration.slack_workspaces
       (org_id, slack_workspace_id, team_name, access_token, installed_by)
     VALUES (${orgId}, ${teamId}, ${teamName}, ${accessToken}, ${installedBy})
@@ -112,13 +113,13 @@ export async function saveSlackWorkspace(
 }
 
 export async function deleteSlackWorkspace(orgId: string): Promise<void> {
-  await Bun.sql`DELETE FROM integration.slack_workspaces WHERE org_id = ${orgId}`;
+  await sql`DELETE FROM integration.slack_workspaces WHERE org_id = ${orgId}`;
 }
 
 export async function getSlackConnectionByOrg(
   orgId: string,
 ): Promise<{ teamId: string; teamName: string } | null> {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT slack_workspace_id AS team_id, team_name
     FROM integration.slack_workspaces
     WHERE org_id = ${orgId}

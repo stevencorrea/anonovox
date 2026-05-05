@@ -18,7 +18,7 @@ import {
   requireVerifiedSession,
   setOrgEntraTenant,
 } from "./server/org";
-import { validateProductionDatabaseConfig } from "./server/db";
+import { sql, validateProductionDatabaseConfig } from "./server/db";
 import { instrumentRoutes, getMetricsSnapshot, getRecentSpans, getSystemInfo } from "./lib/telemetry";
 import {
   verifySlackSignature,
@@ -180,7 +180,7 @@ function formatStructuredPoll(row: StructuredPollRow) {
 }
 
 async function getLatestStructuredPollForOrg(orgId: string) {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT id, org_id, question, options, status, created_at, closed_at
     FROM reporting.structured_polls
     WHERE org_id = ${orgId}
@@ -191,7 +191,7 @@ async function getLatestStructuredPollForOrg(orgId: string) {
 }
 
 async function getActiveStructuredPollForOrg(orgId: string) {
-  const rows = await Bun.sql`
+  const rows = await sql`
     SELECT id, org_id, question, options, status, created_at, closed_at
     FROM reporting.structured_polls
     WHERE org_id = ${orgId} AND status = 'active'
@@ -207,13 +207,13 @@ async function buildStructuredPollSummary(orgId: string) {
 
   const poll = formatStructuredPoll(pollRow);
   const [countRows, noteRows] = await Promise.all([
-    Bun.sql`
+    sql`
       SELECT option_id, COUNT(*)::int AS count
       FROM reporting.structured_poll_responses
       WHERE poll_id = ${poll.id}
       GROUP BY option_id
     ` as unknown as Array<{ option_id: string; count: number }>,
-    Bun.sql`
+    sql`
       SELECT id, comment, created_at
       FROM reporting.structured_poll_responses
       WHERE poll_id = ${poll.id}
@@ -357,13 +357,13 @@ const server = Bun.serve({
         const offset = clampInteger(url.searchParams.get("offset"), 0, 0, Number.MAX_SAFE_INTEGER);
         const limit = clampInteger(url.searchParams.get("limit"), 20, 1, MAX_FEED_LIMIT);
         const [items, countRows] = await Promise.all([
-          Bun.sql`
+          sql`
             SELECT id, content, created_at FROM reporting.feedback_responses
             WHERE org_domain = ${org.slug}
             ORDER BY created_at DESC
             LIMIT ${limit} OFFSET ${offset}
           `,
-          Bun.sql`SELECT COUNT(*)::int AS total FROM reporting.feedback_responses WHERE org_domain = ${org.slug}`,
+          sql`SELECT COUNT(*)::int AS total FROM reporting.feedback_responses WHERE org_domain = ${org.slug}`,
         ]);
         return Response.json({ items, total: countRows[0].total });
       },
@@ -414,7 +414,7 @@ const server = Bun.serve({
           const labelLengthError = requireMaxLength(periodLabel, MAX_PERIOD_LABEL_LENGTH, "Period label");
           if (labelLengthError) return labelLengthError;
         }
-        await Bun.sql`
+        await sql`
           INSERT INTO reporting.leadership_responses (org_id, content, period_label, posted_by)
           VALUES (${org.id}, ${content}, ${periodLabel}, ${session.user.id})
         `;
@@ -426,7 +426,7 @@ const server = Bun.serve({
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
         const { org } = guard;
-        const rows = await Bun.sql`
+        const rows = await sql`
           SELECT id, content, period_label, posted_at FROM reporting.leadership_responses
           WHERE org_id = ${org.id}
           ORDER BY posted_at DESC
@@ -439,7 +439,7 @@ const server = Bun.serve({
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
         const { org } = guard;
-        const rows = await Bun.sql`
+        const rows = await sql`
           SELECT id, recipient_count, feedback_count, status, error, sent_at
           FROM reporting.batch_deliveries
           WHERE org_id = ${org.id}
@@ -477,7 +477,7 @@ const server = Bun.serve({
           return errorResponse(409, "Close the current active poll before creating a new one");
         }
 
-        await Bun.sql`
+        await sql`
           INSERT INTO reporting.structured_polls (org_id, question, options, status, created_by)
           VALUES (
             ${guard.org.id},
@@ -499,7 +499,7 @@ const server = Bun.serve({
         const pollId = readTrimmedString(body.pollId);
         if (!pollId) return errorResponse(400, "Poll ID required");
 
-        const deleted = await Bun.sql`
+        const deleted = await sql`
           DELETE FROM reporting.structured_polls
           WHERE id = ${pollId} AND org_id = ${guard.org.id}
           RETURNING id
@@ -519,7 +519,7 @@ const server = Bun.serve({
         const pollId = readTrimmedString(body.pollId);
         if (!pollId) return errorResponse(400, "Poll ID required");
 
-        const updated = await Bun.sql`
+        const updated = await sql`
           UPDATE reporting.structured_polls
           SET status = 'closed', closed_at = NOW()
           WHERE id = ${pollId}
@@ -596,12 +596,12 @@ const server = Bun.serve({
           return new Response(null, { status: 200 });
         }
 
-        const [{ id: responseId }] = await Bun.sql`
+        const [{ id: responseId }] = await sql`
           INSERT INTO reporting.feedback_responses (content, org_domain)
           VALUES (${text}, ${org.orgSlug})
           RETURNING id
         `;
-        await Bun.sql`
+        await sql`
           INSERT INTO private.feedback_identity (response_id, submission_source)
           VALUES (${responseId}, 'teams')
         `;
@@ -763,7 +763,7 @@ const server = Bun.serve({
           return Response.redirect("/settings?slack=error", 302);
         }
 
-        const orgs = await Bun.sql`SELECT id FROM "organization" WHERE id = ${orgId} LIMIT 1`;
+        const orgs = await sql`SELECT id FROM "organization" WHERE id = ${orgId} LIMIT 1`;
         if (!orgs[0]) return Response.redirect("/settings?slack=error", 302);
 
         try {
@@ -811,13 +811,13 @@ const server = Bun.serve({
           });
         }
 
-        const [{ id: responseId }] = await Bun.sql`
+        const [{ id: responseId }] = await sql`
           INSERT INTO reporting.feedback_responses (content, org_domain)
           VALUES (${text}, ${workspace.orgSlug})
           RETURNING id
         `;
 
-        await Bun.sql`
+        await sql`
           INSERT INTO private.feedback_identity (response_id, submission_source)
           VALUES (${responseId}, 'slack')
         `;
@@ -886,7 +886,7 @@ const server = Bun.serve({
         if (!pollRow) return Response.json({ poll: null, myResponse: null });
 
         const poll = formatStructuredPoll(pollRow);
-        const responses = await Bun.sql`
+        const responses = await sql`
           SELECT r.option_id, r.comment, r.updated_at
           FROM reporting.structured_poll_responses r
           JOIN private.structured_poll_identity i ON i.response_id = r.id
@@ -936,7 +936,7 @@ const server = Bun.serve({
           return errorResponse(400, "Invalid poll option");
         }
 
-        const existing = await Bun.sql`
+        const existing = await sql`
           SELECT response_id
           FROM private.structured_poll_identity
           WHERE poll_id = ${pollId}
@@ -945,21 +945,21 @@ const server = Bun.serve({
         ` as Array<{ response_id: string }>;
 
         if (existing[0]) {
-          await Bun.sql`
+          await sql`
             UPDATE reporting.structured_poll_responses
             SET option_id = ${optionId},
                 comment = ${comment},
                 updated_at = NOW()
             WHERE id = ${existing[0].response_id}
           `;
-          await Bun.sql`
+          await sql`
             UPDATE private.structured_poll_identity
             SET user_email = ${session.user.email},
                 updated_at = NOW()
             WHERE response_id = ${existing[0].response_id}
           `;
         } else {
-          const inserted = await Bun.sql`
+          const inserted = await sql`
             INSERT INTO reporting.structured_poll_responses (poll_id, option_id, comment)
             VALUES (${pollId}, ${optionId}, ${comment})
             RETURNING id
@@ -967,13 +967,13 @@ const server = Bun.serve({
           const responseId = inserted[0]?.id;
           if (!responseId) return errorResponse(500, "Failed to save poll response");
 
-          await Bun.sql`
+          await sql`
             INSERT INTO private.structured_poll_identity (poll_id, response_id, user_id, user_email)
             VALUES (${pollId}, ${responseId}, ${session.user.id}, ${session.user.email})
           `;
         }
 
-        const responses = await Bun.sql`
+        const responses = await sql`
           SELECT r.option_id, r.comment, r.updated_at
           FROM reporting.structured_poll_responses r
           JOIN private.structured_poll_identity i ON i.response_id = r.id
@@ -1026,14 +1026,14 @@ const server = Bun.serve({
         const userAgent = req.headers.get("user-agent")?.slice(0, 512) ?? null;
 
         // Insert response content into the reporting schema (no PII).
-        const [{ id: responseId }] = await Bun.sql`
+        const [{ id: responseId }] = await sql`
           INSERT INTO reporting.feedback_responses (content, org_domain)
           VALUES (${feedback}, ${orgDomain})
           RETURNING id
         `;
 
         // Insert identity data into the private schema (restricted).
-        await Bun.sql`
+        await sql`
           INSERT INTO private.feedback_identity (response_id, user_id, user_email, ip_address, user_agent)
           VALUES (${responseId}, ${userId}, ${userEmail}, ${ipAddress}, ${userAgent})
         `;
@@ -1046,7 +1046,7 @@ const server = Bun.serve({
         const session = await requireStaffSession(req);
         if (session instanceof Response) return session;
         const [dbRows] = await Promise.all([
-          Bun.sql`
+          sql`
             SELECT
               version() AS version,
               current_database() AS database,
@@ -1054,10 +1054,10 @@ const server = Bun.serve({
           `,
         ]) as [Array<{ version: string; database: string; pg_start_time: string }>];
         const [orgsRow, usersRow, slackRow, teamsRow] = await Promise.all([
-          Bun.sql`SELECT COUNT(*)::int AS count FROM "organization"`,
-          Bun.sql`SELECT COUNT(*)::int AS count FROM "user"`,
-          Bun.sql`SELECT COUNT(*)::int AS count FROM integration.slack_workspaces`,
-          Bun.sql`SELECT COUNT(*)::int AS count FROM integration.teams_tenants`,
+          sql`SELECT COUNT(*)::int AS count FROM "organization"`,
+          sql`SELECT COUNT(*)::int AS count FROM "user"`,
+          sql`SELECT COUNT(*)::int AS count FROM integration.slack_workspaces`,
+          sql`SELECT COUNT(*)::int AS count FROM integration.teams_tenants`,
         ]) as [
           Array<{ count: number }>,
           Array<{ count: number }>,
