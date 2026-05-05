@@ -120,6 +120,52 @@ export const sql = typeof sqlClientConfig === "string"
   ? new SQL(sqlClientConfig)
   : new SQL(sqlClientConfig);
 
+export function describeDatabaseConfig(): Record<string, string | number | boolean> {
+  const pgEnvConfig = readPgEnvConfig();
+  if (IS_PRODUCTION_RUNTIME && pgEnvConfig) {
+    return {
+      mode: "pg-env",
+      host: pgEnvConfig.host,
+      port: pgEnvConfig.port,
+      database: pgEnvConfig.database,
+      user: pgEnvConfig.user,
+      cloudSqlSocket: pgEnvConfig.host.startsWith("/cloudsql/"),
+    };
+  }
+
+  const connectionString = readTrimmedEnv("DATABASE_URL");
+  if (connectionString) {
+    try {
+      const parsed = new URL(connectionString);
+      return {
+        mode: "database-url",
+        protocol: parsed.protocol.replace(":", ""),
+        host: parsed.hostname,
+        port: parsed.port || "(default)",
+        database: parsed.pathname.replace(/^\//, ""),
+      };
+    } catch {
+      return {
+        mode: "database-url",
+        parseable: false,
+      };
+    }
+  }
+
+  if (pgEnvConfig) {
+    return {
+      mode: "pg-env",
+      host: pgEnvConfig.host,
+      port: pgEnvConfig.port,
+      database: pgEnvConfig.database,
+      user: pgEnvConfig.user,
+      cloudSqlSocket: pgEnvConfig.host.startsWith("/cloudsql/"),
+    };
+  }
+
+  return { mode: "missing" };
+}
+
 export function validateProductionDatabaseConfig() {
   if (!IS_PRODUCTION_RUNTIME) return;
   getDatabasePoolConfig();

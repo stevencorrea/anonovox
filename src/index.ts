@@ -18,7 +18,7 @@ import {
   requireVerifiedSession,
   setOrgEntraTenant,
 } from "./server/org";
-import { sql, validateProductionDatabaseConfig } from "./server/db";
+import { describeDatabaseConfig, sql, validateProductionDatabaseConfig } from "./server/db";
 import { instrumentRoutes, getMetricsSnapshot, getRecentSpans, getSystemInfo } from "./lib/telemetry";
 import {
   verifySlackSignature,
@@ -297,8 +297,54 @@ function validateRuntimeConfig() {
 }
 
 validateRuntimeConfig();
-await runMigrations();
-startScheduler();
+
+const STARTUP_RETRY_MS = 5_000;
+let appReady = false;
+let startupAttempts = 0;
+let startupError: string | null = null;
+let startupInFlight: Promise<void> | null = null;
+
+function formatStartupError(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return String(error);
+}
+
+async function initializeApp() {
+  if (appReady) return;
+  if (startupInFlight) return startupInFlight;
+
+  startupAttempts += 1;
+  const attempt = startupAttempts;
+  console.log("[startup] Initializing app", {
+    attempt,
+    production: IS_PRODUCTION_RUNTIME,
+    database: describeDatabaseConfig(),
+  });
+
+  startupInFlight = (async () => {
+    try {
+      await runMigrations();
+      startScheduler();
+      appReady = true;
+      startupError = null;
+      console.log("[startup] App initialization complete", { attempt });
+    } catch (error) {
+      appReady = false;
+      startupError = formatStartupError(error);
+      console.error("[startup] App initialization failed", {
+        attempt,
+        error: startupError,
+      });
+      setTimeout(() => {
+        void initializeApp();
+      }, STARTUP_RETRY_MS);
+    } finally {
+      startupInFlight = null;
+    }
+  })();
+
+  return startupInFlight;
+}
 
 const developmentOptions = IS_PRODUCTION_RUNTIME
   ? undefined
@@ -698,8 +744,26 @@ const server = Bun.serve({
       // Simple health check endpoint for load balancers / k8s readiness probes.
       GET: () => {
         return Response.json(
-          { ok: true, uptime_seconds: Math.floor(process.uptime()) },
+          {
+            ok: true,
+            ready: appReady,
+            startup_attempts: startupAttempts,
+            startup_error: startupError,
+            uptime_seconds: Math.floor(process.uptime()),
+          },
           { status: 200 },
+        );
+      },
+    },
+    "/readyz": {
+      GET: () => {
+        return Response.json(
+          {
+            ok: appReady,
+            startup_attempts: startupAttempts,
+            startup_error: startupError,
+          },
+          { status: appReady ? 200 : 503 },
         );
       },
     },
@@ -1103,3 +1167,4 @@ const server = Bun.serve({
 });
 
 console.log(`Listening on ${server.url}`);
+void initializeApp();
