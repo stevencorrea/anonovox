@@ -5,6 +5,9 @@ substitutions:
   _IMAGE_NAME: anonovox
   _RUNTIME_SERVICE_ACCOUNT: anonovox-runtime@anonovox.iam.gserviceaccount.com
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 steps:
   - name: gcr.io/cloud-builders/docker
     args:
