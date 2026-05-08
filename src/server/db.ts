@@ -1,10 +1,31 @@
 import { SQL } from "bun";
 import type { PoolConfig } from "pg";
 
+const CONFLICTING_DATABASE_URL_ENV_VARS = [
+  "POSTGRES_URL",
+  "PGURL",
+  "PG_URL",
+  "TLS_POSTGRES_DATABASE_URL",
+  "TLS_DATABASE_URL",
+] as const;
+
 const DATABASE_URL = process.env.DATABASE_URL?.trim();
 
 if (!DATABASE_URL) {
   throw new Error("DATABASE_URL is required");
+}
+
+let parsedDatabaseUrl: URL;
+try {
+  parsedDatabaseUrl = new URL(DATABASE_URL);
+} catch {
+  throw new Error(
+    "DATABASE_URL must be a valid absolute Postgres URL, for example postgresql://user:password@10.33.192.3:5432/postgres",
+  );
+}
+
+for (const name of CONFLICTING_DATABASE_URL_ENV_VARS) {
+  delete process.env[name];
 }
 
 export function getDatabasePoolConfig(): PoolConfig {
@@ -14,18 +35,13 @@ export function getDatabasePoolConfig(): PoolConfig {
 export const sql = new SQL(DATABASE_URL);
 
 export function describeDatabaseConfig(): Record<string, string | number | boolean> {
-  try {
-    const parsed = new URL(DATABASE_URL);
-    return {
-      mode: "database-url",
-      protocol: parsed.protocol.replace(":", ""),
-      host: parsed.hostname,
-      port: parsed.port || "(default)",
-      database: parsed.pathname.replace(/^\//, ""),
-    };
-  } catch {
-    return { mode: "database-url", parseable: false };
-  }
+  return {
+    mode: "database-url",
+    protocol: parsedDatabaseUrl.protocol.replace(":", ""),
+    host: parsedDatabaseUrl.hostname,
+    port: parsedDatabaseUrl.port || "(default)",
+    database: parsedDatabaseUrl.pathname.replace(/^\//, ""),
+  };
 }
 
 export function validateProductionDatabaseConfig() {

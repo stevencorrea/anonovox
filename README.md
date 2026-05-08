@@ -59,7 +59,7 @@ Core app and auth:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DATABASE_URL` | local dev yes | Postgres connection string |
+| `DATABASE_URL` | yes | Postgres connection string |
 | `BETTER_AUTH_SECRET` | yes | Session and auth signing secret |
 | `BETTER_AUTH_URL` | yes | Public base URL for auth callbacks and generated links |
 | `PORT` | no | HTTP port, defaults to `3000` |
@@ -71,11 +71,13 @@ For local development, use `DATABASE_URL`.
 For production, use a traditional Postgres connection string in `DATABASE_URL`. For a Cloud SQL private IP deployment, that looks like:
 
 ```env
-DATABASE_URL=postgresql://anonovoxapp:replace-with-your-db-password@10.33.192.3:5432/postgres
+DATABASE_URL=postgresql://anonovoxapp:replace-with-your-db-password@10.33.192.3:5432/YOUR_DATABASE_NAME
 ```
 
 For a Docker VM on Compute Engine, point `DATABASE_URL` at the Cloud SQL instance private IP that you already verified from the VM.
 For Cloud Run, direct private-IP TCP requires the service egress path to reach the same VPC network as the Cloud SQL instance.
+
+The runtime also clears Bun's alternate Postgres URL env vars (`POSTGRES_URL`, `PGURL`, `PG_URL`, `TLS_POSTGRES_DATABASE_URL`, `TLS_DATABASE_URL`) before creating the SQL client. If any of those are still set in your deployment, remove them anyway so the runtime config stays obvious.
 
 Email and digests:
 
@@ -149,6 +151,7 @@ If you want a scripted deploy path later, the repo includes an optional [`cloudb
 - deploys to Cloud Run
 - sets `NODE_ENV=production`
 - injects `DATABASE_URL` from Secret Manager
+- removes older `PG*`-style Cloud SQL env/secrets from the service during deploy
 
 Required substitutions and secrets:
 - substitutions: `_REGION`, `_SERVICE`, `_AR_REPO`, `_RUNTIME_SERVICE_ACCOUNT`
@@ -162,6 +165,7 @@ gcloud builds submit --config cloudbuild.yaml \
 ```
 
 If Cloud Run is using a private-IP Cloud SQL address in `DATABASE_URL`, configure Direct VPC egress or a Serverless VPC Access connector so the service can reach that VPC.
+Make sure the service does not keep stale values for `POSTGRES_URL`, `PGURL`, `PG_URL`, `TLS_POSTGRES_DATABASE_URL`, or `TLS_DATABASE_URL`.
 
 **Feature Notes**
 - Auth, sessions, and invites are handled by Better Auth in [`src/server/auth.ts`](/Users/steven/Documents/anonovox/src/server/auth.ts).
