@@ -35,8 +35,8 @@ steps:
           --max-instances=4 \
           --memory=512Mi \
           --cpu=1 \
-          --remove-env-vars="PGHOST,PGPORT,PGUSERNAME,PGUSER,PGDATABASE" \
-          --remove-secrets="PGPASSWORD" \
+          --remove-env-vars="PGHOST,PGPORT,PGUSERNAME,PGUSER,PGDATABASE,PGPASSWORD,POSTGRES_URL,PGURL,PG_URL,TLS_POSTGRES_DATABASE_URL,TLS_DATABASE_URL" \
+          --remove-secrets="PGPASSWORD,POSTGRES_URL,PGURL,PG_URL,TLS_POSTGRES_DATABASE_URL,TLS_DATABASE_URL" \
           --update-env-vars="NODE_ENV=production" \
           --update-secrets="\
             DATABASE_URL=DATABASE_URL:latest,\
