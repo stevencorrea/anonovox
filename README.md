@@ -68,23 +68,14 @@ Core app and auth:
 
 For local development, use `DATABASE_URL`.
 
-For Cloud Run production with Cloud SQL, you can use socket-style Postgres env vars instead of `DATABASE_URL`:
+For production, use a traditional Postgres connection string in `DATABASE_URL`. For a Cloud SQL private IP deployment, that looks like:
 
 ```env
-PGHOST=/cloudsql/your-project:your-region:your-instance
-PGPORT=5432
-PGUSERNAME=anonovoxapp
-PGPASSWORD=replace-with-your-db-password
-PGDATABASE=anonovox
+DATABASE_URL=postgresql://anonovoxapp:replace-with-your-db-password@10.33.192.3:5432/postgres
 ```
 
-Set `PGHOST` to the raw Cloud SQL socket directory that Google provides, for example:
-
-```env
-PGHOST=/cloudsql/anonovox:us-west1:anonovox-db
-```
-
-That production-only path leaves the local Docker Compose flow unchanged.
+For a Docker VM on Compute Engine, point `DATABASE_URL` at the Cloud SQL instance private IP that you already verified from the VM.
+For Cloud Run, direct private-IP TCP requires the service egress path to reach the same VPC network as the Cloud SQL instance.
 
 Email and digests:
 
@@ -156,19 +147,21 @@ The app is currently being managed directly in Google Cloud / Cloud Run.
 If you want a scripted deploy path later, the repo includes an optional [`cloudbuild.yaml`](/Users/steven/Documents/anonovox/cloudbuild.yaml) that:
 - builds and pushes the container image
 - deploys to Cloud Run
-- removes stale `DATABASE_URL`-style config from the service
-- sets Cloud SQL socket-style `PG*` variables instead
+- sets `NODE_ENV=production`
+- injects `DATABASE_URL` from Secret Manager
 
 Required substitutions and secrets:
-- substitutions: `_REGION`, `_SERVICE`, `_AR_REPO`, `_SQL_INSTANCE`, `_RUNTIME_SERVICE_ACCOUNT`, `_DB_NAME`, `_DB_USER`
-- Secret Manager: `PGPASSWORD`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `SCHEDULER_SECRET`, plus any integration/API secrets you use
+- substitutions: `_REGION`, `_SERVICE`, `_AR_REPO`, `_RUNTIME_SERVICE_ACCOUNT`
+- Secret Manager: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `SCHEDULER_SECRET`, plus any integration/API secrets you use
 
 Example:
 
 ```sh
 gcloud builds submit --config cloudbuild.yaml \
-  --substitutions=_REGION=us-west1,_SERVICE=anonovox,_AR_REPO=anonovox,_SQL_INSTANCE=anonovox:us-west1:anonovox-db,_RUNTIME_SERVICE_ACCOUNT=anonovox-runtime@YOUR_PROJECT_ID.iam.gserviceaccount.com,_DB_NAME=anonovox,_DB_USER=anonovoxapp
+  --substitutions=_REGION=us-west1,_SERVICE=anonovox,_AR_REPO=anonovox,_RUNTIME_SERVICE_ACCOUNT=anonovox-runtime@YOUR_PROJECT_ID.iam.gserviceaccount.com
 ```
+
+If Cloud Run is using a private-IP Cloud SQL address in `DATABASE_URL`, configure Direct VPC egress or a Serverless VPC Access connector so the service can reach that VPC.
 
 **Feature Notes**
 - Auth, sessions, and invites are handled by Better Auth in [`src/server/auth.ts`](/Users/steven/Documents/anonovox/src/server/auth.ts).

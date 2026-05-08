@@ -39,8 +39,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Override the production entrypoint for hot-reload in development.
-    entrypoint: ["bun", "--hot", "src/index.ts"]
+    command: ["bun", "--hot", "src/index.ts"]
 
 volumes:
   postgres_data:
