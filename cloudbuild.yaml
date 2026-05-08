@@ -1,8 +1,8 @@
 substitutions:
   _REGION: us-west1
   _SERVICE: anonovox
-  _AR_REPO: anonovox
-  _IMAGE_NAME: app
+  _AR_REPO_BASE: us-west1-docker.pkg.dev/anonovox/anonovox
+  _IMAGE_NAME: anonovox
   _RUNTIME_SERVICE_ACCOUNT: anonovox-runtime@anonovox.iam.gserviceaccount.com
 
 steps:
@@ -10,20 +10,20 @@ steps:
     args:
       - build
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA
+      - ${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA
       - .
 
   - name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA
+      - ${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args:
       - -ceu
       - |
-        IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA"
+        IMAGE="${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA"
 
         gcloud run deploy "${_SERVICE}" \
           --image="${IMAGE}" \
@@ -55,4 +55,4 @@ steps:
             SCHEDULER_SECRET=SCHEDULER_SECRET:latest"
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA
+  - ${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA
