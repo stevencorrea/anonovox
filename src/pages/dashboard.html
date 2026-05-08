@@ -33,10 +33,20 @@
     .settings-title {
       font-family: var(--ff-display);
       font-size: clamp(1.75rem, 3vw, 2.25rem);
-      font-weight: 600;
+      font-weight: 400;
       color: var(--text-primary);
-      letter-spacing: -0.02em;
+      letter-spacing: normal;
+      font-kerning: normal;
+      margin: 0;
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
       margin-bottom: 2.5rem;
+      flex-wrap: wrap;
     }
 
     /* ── Cards ── */
@@ -632,6 +642,7 @@
         grid-template-columns: 1fr;
       }
       .settings-shell { padding: 6rem 1.25rem 4rem; }
+      .settings-header { align-items: start; }
       .respond-row { flex-direction: column; align-items: stretch; }
     }
   </style>
@@ -642,20 +653,16 @@
   <nav>
     <a href="/" class="wordmark">anono<b>vox</b></a>
     <div class="nav-right">
-      <a href="/feedback" class="nav-link">Submit feedback</a>
-      <div style="display:flex;align-items:center;gap:1.5rem;">
-        <div class="theme-toggle">
-          <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
-          <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
-        </div>
-        <div id="nav-auth"><a href="/signin" class="btn-primary btn-small">Sign in</a></div>
-      </div>
+      <div id="nav-auth"><a href="/signin" class="btn-primary btn-small">Sign in</a></div>
     </div>
   </nav>
 
   <div class="settings-shell">
     <div class="settings-eyebrow">Leadership</div>
-    <h1 class="settings-title">Dashboard</h1>
+    <div class="settings-header">
+      <h1 class="settings-title">Dashboard</h1>
+      <a id="manage-org-link" href="/settings?section=people" class="btn-secondary btn-small" style="display:none">Manage organization</a>
+    </div>
 
     <!-- Loading state -->
     <div id="dashboard-loading">Loading…</div>
@@ -794,7 +801,7 @@
 
           <div class="settings-card" id="deliveries-card" style="display:none">
             <div class="card-title">Email Digest History</div>
-            <div id="deliveries-empty" style="display:none;font-size:0.85rem;color:var(--text-tertiary)">No digests sent yet. The first batch will go out tonight.</div>
+            <div id="deliveries-empty" style="display:none;font-size:0.85rem;color:var(--text-tertiary)">No digests sent yet. The first monthly digest will go out after the current calendar month closes.</div>
             <div id="deliveries-list"></div>
           </div>
         </div>
@@ -802,6 +809,19 @@
 
     </div><!-- /dashboard-content -->
   </div>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <div class="site-footer-copy">Leadership workspace</div>
+      <div class="footer-tools">
+        <span class="footer-toggle-label">Appearance</span>
+        <div class="theme-toggle">
+          <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
+          <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <script src="../client/theme-toggle.js"></script>
   <script type="module" src="../client/home-nav.ts"></script>

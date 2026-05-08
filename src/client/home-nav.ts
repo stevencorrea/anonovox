@@ -64,15 +64,25 @@ if (session?.user?.email) {
   });
 
   let dashboardLink: HTMLAnchorElement | null = null;
+  let manageOrgLink: HTMLAnchorElement | null = null;
   try {
     const meRes = await fetch("/api/org/me");
     if (meRes.ok) {
-      const me = await meRes.json() as { orgId: string | null; role: string | null };
+      const me = await meRes.json() as {
+        orgId: string | null;
+        role: string | null;
+      };
       if (me.role === "owner" || me.role === "admin") {
         dashboardLink = document.createElement("a");
         dashboardLink.href = "/dashboard";
         dashboardLink.className = "nav-link";
         dashboardLink.textContent = "Dashboard";
+      }
+      if (me.role === "owner") {
+        manageOrgLink = document.createElement("a");
+        manageOrgLink.href = "/settings?section=people";
+        manageOrgLink.className = "nav-link";
+        manageOrgLink.textContent = "Manage organization";
       }
     }
   } catch {}
@@ -80,6 +90,7 @@ if (session?.user?.email) {
   navAuth.replaceChildren(
     userSpan,
     ...(dashboardLink ? [dashboardLink] : []),
+    ...(manageOrgLink ? [manageOrgLink] : []),
     feedbackLink,
     signOutLink,
   );

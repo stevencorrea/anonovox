@@ -79,6 +79,27 @@ async function generateInsights(items: string[]): Promise<InsightsResult> {
   return normalizeInsightsResult(JSON.parse(raw));
 }
 
+export async function generateInsightsForOrgWindow(
+  orgDomain: string,
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<{ insights: InsightsResult; sampleCount: number } | null> {
+  const rows = await sql`
+    SELECT content FROM reporting.feedback_responses
+    WHERE org_domain = ${orgDomain}
+      AND created_at >= ${windowStart.toISOString()}::timestamptz
+      AND created_at < ${windowEnd.toISOString()}::timestamptz
+    ORDER BY created_at DESC
+    LIMIT 50
+  ` as Array<{ content: string }>;
+
+  if (!rows.length) return null;
+
+  const items = rows.map((row) => row.content);
+  const insights = await generateInsights(items);
+  return { insights, sampleCount: items.length };
+}
+
 export async function getCachedInsights(orgId: string): Promise<{ insights: InsightsResult; generated_at: string } | null> {
   const rows = await sql`
     SELECT content, generated_at FROM reporting.org_insights WHERE org_id = ${orgId}
@@ -128,8 +149,9 @@ export async function getInsightsDelta(orgId: string, current: InsightsResult): 
     ORDER BY generated_at DESC
     LIMIT 2
   ` as Array<{ content: InsightsResult }>;
-  if (rows.length < 2) return null;
-  const prev = normalizeInsightsResult(rows[1].content);
+  const previousRow = rows[1];
+  if (!previousRow) return null;
+  const prev = normalizeInsightsResult(previousRow.content);
   const currentThemes = new Set(current.themes);
   const prevThemes = new Set(prev.themes);
   return {

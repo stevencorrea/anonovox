@@ -1,6 +1,8 @@
 import { auth } from "./auth";
 import { sql } from "./db";
 
+export const LEADER_ROLE = "leader";
+
 const PERSONAL_DOMAINS = new Set([
   "gmail.com",
   "yahoo.com",
@@ -301,8 +303,86 @@ export async function setOrgEntraTenant(orgId: string, tenantId: string | null) 
   await sql`UPDATE "organization" SET "entraTenantId" = ${tenantId} WHERE id = ${orgId}`;
 }
 
+export async function listOrgRoleUserIds(orgId: string, role: string): Promise<string[]> {
+  const rows = await sql`
+    SELECT DISTINCT assignment.user_id
+    FROM private.org_role_assignments assignment
+    JOIN "member" m
+      ON m."organizationId" = assignment.org_id
+     AND m."userId" = assignment.user_id
+    WHERE assignment.org_id = ${orgId}
+      AND assignment.role = ${role}
+  ` as Array<{ user_id: string }>;
+
+  return rows.map((row) => row.user_id);
+}
+
+export async function listOrgLeaderUserIds(orgId: string): Promise<string[]> {
+  return listOrgRoleUserIds(orgId, LEADER_ROLE);
+}
+
+export async function setOrgLeaderRole(params: {
+  orgId: string;
+  userId: string;
+  enabled: boolean;
+  assignedBy: string;
+}) {
+  const { orgId, userId, enabled, assignedBy } = params;
+  const membershipRows = await sql`
+    SELECT id
+    FROM "member"
+    WHERE "organizationId" = ${orgId}
+      AND "userId" = ${userId}
+    LIMIT 1
+  `;
+
+  if (!membershipRows[0]) {
+    throw new Error("Member not found in this organization");
+  }
+
+  if (enabled) {
+    await sql`
+      INSERT INTO private.org_role_assignments (org_id, user_id, role, assigned_by)
+      VALUES (${orgId}, ${userId}, ${LEADER_ROLE}, ${assignedBy})
+      ON CONFLICT (org_id, user_id, role) DO UPDATE
+      SET assigned_by = EXCLUDED.assigned_by
+    `;
+    return;
+  }
+
+  await sql`
+    DELETE FROM private.org_role_assignments
+    WHERE org_id = ${orgId}
+      AND user_id = ${userId}
+      AND role = ${LEADER_ROLE}
+  `;
+}
+
+export async function listOrgLeaderRecipients(orgId: string): Promise<Array<{ email: string; name: string }>> {
+  const rows = await sql`
+    SELECT DISTINCT u.email, u.name
+    FROM private.org_role_assignments assignment
+    JOIN "member" m
+      ON m."organizationId" = assignment.org_id
+     AND m."userId" = assignment.user_id
+    JOIN "user" u ON u.id = assignment.user_id
+    WHERE assignment.org_id = ${orgId}
+      AND assignment.role = ${LEADER_ROLE}
+      AND u.email IS NOT NULL
+    ORDER BY u.email ASC
+  ` as Array<{ email: string; name: string }>;
+
+  return rows;
+}
+
 type SessionData = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
-type OrgRecord = { id: string; name: string; slug: string; entraTenantId: string | null };
+type OrgRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  entraTenantId: string | null;
+  plan: string | null;
+};
 type OrgMembershipRow = OrgRecord & { role: string; memberCreatedAt: string };
 
 function getActiveOrganizationId(session: SessionData): string | null {
@@ -411,6 +491,7 @@ export async function getSessionOrgMembership(
       o.name,
       o.slug,
       o."entraTenantId",
+      o.plan,
       m.role,
       m."createdAt" AS "memberCreatedAt"
     FROM "member" m

@@ -17,8 +17,15 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                justify-content: center;
                 padding: 2rem 1.5rem;
+            }
+
+            .page-shell {
+                flex: 1;
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .glow {
@@ -727,6 +734,7 @@
             <a href="#" id="resend-verify" class="verify-link">Resend verification email</a>
         </div>
 
+        <div class="page-shell">
         <div class="feedback-layout">
             <div class="card">
                 <div class="eyebrow">Submit feedback</div>
@@ -974,6 +982,20 @@
                 </div>
             </div>
         </div>
+        </div>
+
+        <footer class="site-footer">
+            <div class="site-footer-inner">
+                <div class="site-footer-copy">© 2026 anonovox. All rights reserved.</div>
+                <div class="footer-tools">
+                    <span class="footer-toggle-label">Appearance</span>
+                    <div class="theme-toggle">
+                        <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
+                        <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
+                    </div>
+                </div>
+            </div>
+        </footer>
 
         <script src="../client/theme-toggle.js"></script>
         <script type="module" src="./feedback.ts"></script>

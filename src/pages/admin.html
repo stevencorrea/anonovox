@@ -17,6 +17,16 @@
       padding: 6rem 2rem 6rem;
     }
 
+    .site-footer {
+      background: transparent;
+      border-top: none;
+    }
+
+    .site-footer-inner {
+      max-width: 1200px;
+      padding-top: 0;
+    }
+
     .eyebrow {
       font-size: 0.7rem;
       letter-spacing: 0.12em;
@@ -29,9 +39,10 @@
     .page-title {
       font-family: var(--ff-display);
       font-size: clamp(1.75rem, 3vw, 2.25rem);
-      font-weight: 600;
+      font-weight: 400;
       color: var(--text-primary);
-      letter-spacing: -0.02em;
+      letter-spacing: normal;
+      font-kerning: normal;
       margin-bottom: 0.5rem;
     }
 
@@ -330,6 +341,20 @@
     </div>
   </div>
 
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <div class="site-footer-copy">Internal admin</div>
+      <div class="footer-tools">
+        <span class="footer-toggle-label">Appearance</span>
+        <div class="theme-toggle">
+          <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
+          <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../client/theme-toggle.js"></script>
   <script type="module" src="./admin.ts"></script>
 </body>
 </html>

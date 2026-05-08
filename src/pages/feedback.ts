@@ -113,7 +113,7 @@ form.addEventListener("submit", async (e) => {
       hideSuggestions();
       hideReview();
       showMessage(
-        "Your feedback has been received. It will be included in the next batch.",
+        "Your feedback has been received. It will be included in the next monthly digest.",
         "success",
       );
     } else if (res.status === 401) {

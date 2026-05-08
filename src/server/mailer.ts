@@ -89,6 +89,7 @@ function wrapEmail(body: string): string {
 
 export interface BatchDigestParams {
   orgName: string;
+  periodLabel: string;
   feedbackCount: number;
   insights: {
     themes: string[];
@@ -99,11 +100,8 @@ export interface BatchDigestParams {
 }
 
 export async function sendBatchDigest(to: string, params: BatchDigestParams): Promise<void> {
-  const { orgName, feedbackCount, insights } = params;
+  const { orgName, periodLabel, feedbackCount, insights } = params;
   const appUrl = getAppUrl();
-  const dateLabel = new Date().toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
-  });
 
   let insightsHtml = "";
   if (insights) {
@@ -147,15 +145,15 @@ export async function sendBatchDigest(to: string, params: BatchDigestParams): Pr
   }
 
   const body = `
-    <p style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#8b8480;margin:0 0 6px;">Feedback Digest</p>
+    <p style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#8b8480;margin:0 0 6px;">Monthly Feedback Digest</p>
     <h1 style="font-size:22px;font-weight:600;color:#1a1410;margin:0 0 4px;letter-spacing:-0.02em;">${esc(orgName)}</h1>
-    <p style="font-size:13px;color:#8b8480;margin:0 0 24px;">${dateLabel}</p>
+    <p style="font-size:13px;color:#8b8480;margin:0 0 24px;">${esc(periodLabel)}</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5ede6;border-radius:8px;margin-bottom:24px;">
       <tr>
         <td style="padding:14px 18px;">
           <span style="font-size:28px;font-weight:700;color:#2c3e7a;">${feedbackCount}</span>
-          <span style="font-size:13px;color:#5a5450;margin-left:8px;">new submission${feedbackCount !== 1 ? "s" : ""} since last digest</span>
+          <span style="font-size:13px;color:#5a5450;margin-left:8px;">submission${feedbackCount !== 1 ? "s" : ""} received during ${esc(periodLabel)}</span>
         </td>
       </tr>
     </table>
@@ -176,7 +174,7 @@ export async function sendBatchDigest(to: string, params: BatchDigestParams): Pr
 
   await send(
     to,
-    `Feedback digest — ${orgName} (${feedbackCount} new)`,
+    `Monthly feedback digest — ${orgName} (${periodLabel})`,
     wrapEmail(body),
   );
 }
@@ -300,5 +298,5 @@ export async function sendRequestAccessEmail(params: RequestAccessEmailParams): 
       Reply to <a href="mailto:${esc(contactEmail)}" style="color:#2c3e7a;text-decoration:none;">${esc(contactEmail)}</a> to continue the conversation.
     </p>`;
 
-  await send("steven@recursesystems.com", `Request access — ${companyName}`, wrapEmail(body));
+  await send("steven@anonovox.com", `Request access — ${companyName}`, wrapEmail(body));
 }

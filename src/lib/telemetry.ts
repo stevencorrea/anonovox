@@ -1,5 +1,6 @@
 import { BasicTracerProvider, SimpleSpanProcessor, BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
+import type { SpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
@@ -93,7 +94,7 @@ function getCurrentBucket(): MinuteBucket {
 function percentile(sorted: number[], p: number): number {
   if (!sorted.length) return 0;
   const idx = Math.ceil((p / 100) * sorted.length) - 1;
-  return sorted[Math.max(0, idx)];
+  return sorted[Math.max(0, idx)] ?? 0;
 }
 
 // ── OTel provider setup ────────────────────────────────────────────────────
@@ -104,7 +105,7 @@ const ctxManager = new AsyncLocalStorageContextManager();
 ctxManager.enable();
 context.setGlobalContextManager(ctxManager);
 
-const spanProcessors = [new SimpleSpanProcessor(spanExporter)];
+const spanProcessors: SpanProcessor[] = [new SimpleSpanProcessor(spanExporter)];
 
 // Export to Jaeger (or any OTLP collector) when endpoint is configured.
 const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -127,8 +128,7 @@ const tracer = trace.getTracer("anonovox", "1.0.0");
 
 const HTTP_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
-type RouteHandler = (req: Request) => Promise<Response>;
-type RouteMap = Record<string, RouteHandler>;
+type RouteHandler = (req: Request) => Response | Promise<Response>;
 type Routes = Record<string, unknown>;
 
 function wrapHandler(method: string, path: string, handler: RouteHandler): RouteHandler {
@@ -156,8 +156,8 @@ function wrapHandler(method: string, path: string, handler: RouteHandler): Route
   };
 }
 
-export function instrumentRoutes(routes: Routes): Routes {
-  const result: Routes = {};
+export function instrumentRoutes<T extends Routes>(routes: T): T {
+  const result = {} as T;
   for (const [path, value] of Object.entries(routes)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const entries = Object.entries(value as Record<string, unknown>);
@@ -169,11 +169,11 @@ export function instrumentRoutes(routes: Routes): Routes {
               ? wrapHandler(method, path, fn as RouteHandler)
               : fn;
         }
-        result[path] = wrapped;
+        result[path as keyof T] = wrapped as T[keyof T];
         continue;
       }
     }
-    result[path] = value;
+    result[path as keyof T] = value as T[keyof T];
   }
   return result;
 }

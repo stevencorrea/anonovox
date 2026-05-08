@@ -76,6 +76,7 @@ const feedCountEl = document.getElementById("feed-count") as HTMLElement;
 const deliveriesCard = document.getElementById("deliveries-card") as HTMLElement;
 const deliveriesList = document.getElementById("deliveries-list") as HTMLElement;
 const deliveriesEmpty = document.getElementById("deliveries-empty") as HTMLElement;
+const manageOrgLink = document.getElementById("manage-org-link") as HTMLAnchorElement;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -100,11 +101,18 @@ const PAGE_SIZE = 20;
     showError(await readApiError(meRes, "Failed to load organization info."));
     return;
   }
-  const me = await meRes.json() as { orgId: string | null; role: string | null };
+  const me = await meRes.json() as {
+    orgId: string | null;
+    role: string | null;
+  };
   if (!me.orgId || !["owner", "admin"].includes(me.role ?? "")) {
     loadingEl.style.display = "none";
     accessDeniedEl.style.display = "block";
     return;
+  }
+
+  if (me.role === "owner") {
+    manageOrgLink.style.display = "inline-flex";
   }
 
   try {

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>anonovox - anonymous feedback for leadership</title>
-  <meta name="description" content="Anonymous feedback from anyone in the organization, delivered directly to leadership." />
+  <title>anonovox fearless feedback</title>
+  <meta name="description" content="Anonovox gives leadership a direct way to receive anonymous feedback from anyone in the organization." />
   <script src="../client/route-link-guard.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -111,9 +111,10 @@
 
     h1 {
       font-size: clamp(2.5rem, 7.5vw, 4.5rem);
-      font-weight: 600;
+      font-weight: 400;
       line-height: 1.1;
-      letter-spacing: -0.02em;
+      letter-spacing: normal;
+      font-kerning: normal;
       margin-bottom: 1.5rem;
       color: var(--text-primary);
       max-width: 8ch;
@@ -203,8 +204,10 @@
     h2 {
       font-family: var(--ff-display);
       font-size: clamp(2rem, 4vw, 3.2rem);
-      font-weight: 600;
+      font-weight: 400;
       line-height: 1.1;
+      letter-spacing: normal;
+      font-kerning: normal;
       color: var(--text-primary);
       max-width: 600px;
       margin-bottom: 3rem;
@@ -522,13 +525,7 @@
       <a href="#how-it-works" class="nav-link">How it works</a>
       <a href="#why" class="nav-link">Why anonovox</a>
       <a href="/pricing" class="nav-link">Pricing</a>
-      <div style="display: flex; align-items: center; gap: 1.5rem;">
-        <div class="theme-toggle">
-          <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
-          <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
-        </div>
-        <div id="nav-auth"><a href="/signin" class="btn-primary btn-small">Sign in</a></div>
-      </div>
+      <div id="nav-auth"><a href="/signin" class="btn-primary btn-small">Sign in</a></div>
     </div>
   </nav>
 
@@ -663,6 +660,13 @@
   <!-- FOOTER -->
   <footer>
     <div class="footer-brand">anonovox</div>
+    <div class="footer-tools">
+      <span class="footer-toggle-label">Appearance</span>
+      <div class="theme-toggle">
+        <button id="theme-toggle-sun" class="theme-toggle-btn active" title="Light mode">☀️</button>
+        <button id="theme-toggle-moon" class="theme-toggle-btn" title="Dark mode">🌙</button>
+      </div>
+    </div>
     <div class="footer-copy">© 2026 anonovox. All rights reserved.</div>
   </footer>
 

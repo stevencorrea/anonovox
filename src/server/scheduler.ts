@@ -1,9 +1,8 @@
-import { refreshInsights } from "./insights";
+import { generateInsightsForOrgWindow } from "./insights";
+import { LEADER_ROLE, listOrgLeaderRecipients } from "./org";
 import { sql } from "./db";
 import { sendBatchDigest } from "./mailer";
 
-// How many hours must pass between batch digests for an org (23h = nightly cadence)
-const BATCH_INTERVAL_HOURS = 23;
 // How often the scheduler polls for eligible orgs
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 // Initial delay before first run after startup
@@ -44,17 +43,49 @@ export async function runBatchJob() {
   return inFlightBatchJob;
 }
 
+export function getPreviousMonthlyDigestPeriod(referenceDate = new Date()) {
+  const periodEnd = new Date(Date.UTC(
+    referenceDate.getUTCFullYear(),
+    referenceDate.getUTCMonth(),
+    1,
+    0,
+    0,
+    0,
+    0,
+  ));
+  const periodStart = new Date(Date.UTC(
+    periodEnd.getUTCFullYear(),
+    periodEnd.getUTCMonth() - 1,
+    1,
+    0,
+    0,
+    0,
+    0,
+  ));
+  const periodLabel = periodStart.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
+  return { periodStart, periodEnd, periodLabel };
+}
+
 async function runBatchJobOnce() {
-  console.log("[scheduler] Running nightly batch job…");
+  console.log("[scheduler] Running monthly batch job…");
   try {
-    // All orgs that have at least one admin/owner member with an email
+    // All orgs that have at least one leader recipient with an email.
     const orgs = await sql`
       SELECT DISTINCT o.id, o.name, o.slug
       FROM "organization" o
-      JOIN "member" m ON m."organizationId" = o.id
-      JOIN "user" u ON u.id = m."userId"
-      WHERE m.role IN ('owner', 'admin')
-      AND u.email IS NOT NULL
+      JOIN private.org_role_assignments assignment
+        ON assignment.org_id = o.id
+       AND assignment.role = ${LEADER_ROLE}
+      JOIN "member" m
+        ON m."organizationId" = o.id
+       AND m."userId" = assignment.user_id
+      JOIN "user" u ON u.id = assignment.user_id
+      WHERE u.email IS NOT NULL
     `;
 
     let sent = 0;
@@ -72,70 +103,77 @@ async function runBatchJobOnce() {
 }
 
 async function tryBatchOrg(org: { id: string; name: string; slug: string }): Promise<boolean> {
-  // Check when we last sent a batch for this org
-  const lastRows = await sql`
-    SELECT sent_at FROM reporting.batch_deliveries
-    WHERE org_id = ${org.id} AND status = 'sent'
-    ORDER BY sent_at DESC LIMIT 1
+  const { periodStart, periodEnd, periodLabel } = getPreviousMonthlyDigestPeriod();
+
+  if (periodEnd.getTime() <= periodStart.getTime()) return false;
+
+  const deliveredRows = await sql`
+    SELECT id
+    FROM reporting.batch_deliveries
+    WHERE org_id = ${org.id}
+      AND status = 'sent'
+      AND period_start = ${periodStart.toISOString()}::timestamptz
+      AND period_end = ${periodEnd.toISOString()}::timestamptz
+    LIMIT 1
   `;
+  if (deliveredRows[0]) return false;
 
-  const lastSentAt = lastRows[0]?.sent_at ? new Date(lastRows[0].sent_at as string) : null;
-  const hoursSinceLast = lastSentAt
-    ? (Date.now() - lastSentAt.getTime()) / (1000 * 60 * 60)
-    : Infinity;
-
-  if (hoursSinceLast < BATCH_INTERVAL_HOURS) return false;
-
-  // Count new feedback since the last batch (or all-time if none)
-  const since = lastSentAt ?? new Date(0);
   const countRows = await sql`
     SELECT COUNT(*)::int AS count FROM reporting.feedback_responses
     WHERE org_domain = ${org.slug}
-    AND created_at > ${since.toISOString()}::timestamptz
+      AND created_at >= ${periodStart.toISOString()}::timestamptz
+      AND created_at < ${periodEnd.toISOString()}::timestamptz
   `;
   const feedbackCount = (countRows[0]?.count ?? 0) as number;
   if (feedbackCount === 0) return false;
 
-  // Get all admin/owner emails for this org
-  const adminRows = await sql`
-    SELECT DISTINCT u.email, u.name FROM "user" u
-    JOIN "member" m ON m."userId" = u.id
-    WHERE m."organizationId" = ${org.id}
-    AND m.role IN ('owner', 'admin')
-    AND u.email IS NOT NULL
-  `;
-  if (adminRows.length === 0) return false;
+  const leaderRows = await listOrgLeaderRecipients(org.id);
+  if (leaderRows.length === 0) return false;
 
-  // Refresh insights with latest feedback
-  const insightsResult = await refreshInsights(org.id, org.slug).catch((err) => {
+  const insightsResult = await generateInsightsForOrgWindow(org.slug, periodStart, periodEnd).catch((err) => {
     console.error(`[scheduler] Failed to generate insights for ${org.slug}:`, err);
     return null;
   });
 
-  // Send to each admin
   let successCount = 0;
   let lastError: string | null = null;
 
-  for (const admin of adminRows as { email: string; name: string }[]) {
+  for (const leader of leaderRows) {
     try {
-      await sendBatchDigest(admin.email, {
+      await sendBatchDigest(leader.email, {
         orgName: org.name,
+        periodLabel,
         feedbackCount,
         insights: insightsResult?.insights ?? null,
       });
       successCount++;
-      console.log(`[scheduler] Sent digest to ${admin.email} (${org.slug})`);
+      console.log(`[scheduler] Sent monthly digest to ${leader.email} (${org.slug})`);
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
-      console.error(`[scheduler] Failed to send to ${admin.email}:`, err);
+      console.error(`[scheduler] Failed to send to ${leader.email}:`, err);
     }
   }
 
-  // Record the delivery regardless of individual send results
   const status = successCount > 0 ? "sent" : "failed";
   await sql`
-    INSERT INTO reporting.batch_deliveries (org_id, recipient_count, feedback_count, status, error)
-    VALUES (${org.id}, ${successCount}, ${feedbackCount}, ${status}, ${lastError})
+    INSERT INTO reporting.batch_deliveries (
+      org_id,
+      recipient_count,
+      feedback_count,
+      period_start,
+      period_end,
+      status,
+      error
+    )
+    VALUES (
+      ${org.id},
+      ${successCount},
+      ${feedbackCount},
+      ${periodStart.toISOString()}::timestamptz,
+      ${periodEnd.toISOString()}::timestamptz,
+      ${status},
+      ${lastError}
+    )
   `;
 
   return status === "sent";

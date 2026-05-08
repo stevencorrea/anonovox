@@ -1,4 +1,5 @@
 import { SQL } from "bun";
+import { Pool } from "pg";
 import type { PoolConfig } from "pg";
 
 const CONFLICTING_DATABASE_URL_ENV_VARS = [
@@ -32,7 +33,15 @@ export function getDatabasePoolConfig(): PoolConfig {
   return { connectionString: DATABASE_URL };
 }
 
-export const sql = new SQL(DATABASE_URL);
+type DbGlobals = typeof globalThis & {
+  __anonovoxSql?: SQL;
+  __anonovoxPgPool?: Pool;
+};
+
+const dbGlobals = globalThis as DbGlobals;
+
+export const sql = dbGlobals.__anonovoxSql ??= new SQL(DATABASE_URL);
+export const pgPool = dbGlobals.__anonovoxPgPool ??= new Pool(getDatabasePoolConfig());
 
 export function describeDatabaseConfig(): Record<string, string | number | boolean> {
   return {

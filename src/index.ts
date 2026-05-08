@@ -15,9 +15,11 @@ import type { AnalysisRisk } from "./lib/analyze";
 import { reviewDraft } from "./lib/review";
 import {
   getSessionOrgMembership,
+  listOrgLeaderUserIds,
   requireOrgAdmin,
   requireStaffSession,
   requireVerifiedSession,
+  setOrgLeaderRole,
   setOrgEntraTenant,
 } from "./server/org";
 import { describeDatabaseConfig, sql, validateProductionDatabaseConfig } from "./server/db";
@@ -378,9 +380,10 @@ const developmentOptions = IS_PRODUCTION_RUNTIME
       console: true,
     };
 
-const server = Bun.serve({
-  port: Number(process.env.PORT ?? 3000),
-  routes: instrumentRoutes({
+type ServeOptions = Parameters<typeof Bun.serve>[0];
+type AppRoutes = NonNullable<ServeOptions["routes"]>;
+
+const routes = {
     "/": homePage,
     "/signin": signinPage,
     "/accept-invitation": acceptInvitationPage,
@@ -450,6 +453,9 @@ const server = Bun.serve({
         return Response.json({
           orgId: membership?.org.id ?? null,
           role: membership?.role ?? null,
+          orgName: membership?.org.name ?? null,
+          orgSlug: membership?.org.slug ?? null,
+          plan: membership?.org.plan ?? "trial",
         });
       },
     },
@@ -462,6 +468,9 @@ const server = Bun.serve({
       POST: async (req) => {
         const guard = await requireOrgAdmin(req);
         if (guard instanceof Response) return guard;
+        if (guard.org.plan !== "enterprise") {
+          return errorResponse(403, "Enterprise plan required");
+        }
         const body = await readJsonBody<{ tenantId?: string | null }>(req);
         if (!body) return errorResponse(400, "Invalid JSON body");
         const tenantId = body.tenantId === null ? null : normalizeTenantId(body.tenantId);
@@ -470,6 +479,44 @@ const server = Bun.serve({
         }
         await setOrgEntraTenant(guard.org.id, tenantId);
         return Response.json({ ok: true, entraTenantId: tenantId });
+      },
+    },
+    "/api/org/leader-role": {
+      GET: async (req) => {
+        const session = await requireVerifiedSession(req);
+        if (session instanceof Response) return session;
+        const membership = await getSessionOrgMembership(session);
+        if (!membership) return errorResponse(403, "No organization found");
+        const leaderUserIds = await listOrgLeaderUserIds(membership.org.id);
+        return Response.json({ leaderUserIds });
+      },
+      POST: async (req) => {
+        const guard = await requireOrgAdmin(req);
+        if (guard instanceof Response) return guard;
+        const body = await readJsonBody<{ userId?: string; enabled?: boolean }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+
+        const userId = readTrimmedString(body.userId);
+        if (!userId) return errorResponse(400, "User ID required");
+        if (typeof body.enabled !== "boolean") return errorResponse(400, "Enabled flag required");
+
+        try {
+          await setOrgLeaderRole({
+            orgId: guard.org.id,
+            userId,
+            enabled: body.enabled,
+            assignedBy: guard.session.user.id,
+          });
+        } catch (error) {
+          const message = error instanceof Error && error.message
+            ? error.message
+            : "Failed to update leader role";
+          const status = message === "Member not found in this organization" ? 404 : 400;
+          return errorResponse(status, message);
+        }
+
+        const leaderUserIds = await listOrgLeaderUserIds(guard.org.id);
+        return Response.json({ ok: true, leaderUserIds });
       },
     },
     "/api/dashboard/feed": {
@@ -1237,7 +1284,11 @@ const server = Bun.serve({
         return Response.json(getRecentSpans(80));
       },
     },
-  }),
+  } satisfies AppRoutes;
+
+const server = Bun.serve({
+  port: Number(process.env.PORT ?? 3000),
+  routes: instrumentRoutes(routes),
   fetch(req) {
     return auth.handler(req);
   },

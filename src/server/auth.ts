@@ -1,9 +1,9 @@
 import { betterAuth } from "better-auth";
-import { Pool } from "pg";
 import { dash } from "@better-auth/infra";
 import { organization } from "better-auth/plugins";
+import { APIError } from "@better-auth/core/error";
 import { ensureOrgMembership, handleEntraAccountCreated, handleEntraAccountUpdated } from "./org";
-import { getDatabasePoolConfig } from "./db";
+import { pgPool } from "./db";
 import { sendVerificationEmail, sendInvitationEmail } from "./mailer";
 
 const APP_BASE_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -34,9 +34,14 @@ function getTrustedOrigins(): string[] {
   return [...origins];
 }
 
+function getEmailDomain(email: string): string | null {
+  const [, domain] = email.trim().toLowerCase().split("@");
+  return domain || null;
+}
+
 export const auth = betterAuth({
   baseURL: APP_BASE_URL,
-  database: new Pool(getDatabasePoolConfig()),
+  database: pgPool,
   emailAndPassword: {
     enabled: true,
   },
@@ -77,13 +82,28 @@ export const auth = betterAuth({
           acceptUrl,
         );
       },
+      organizationHooks: {
+        beforeCreateInvitation: async ({ invitation, organization }) => {
+          const inviteDomain = getEmailDomain(invitation.email);
+          const orgDomain = organization.slug?.trim().toLowerCase();
+          if (!inviteDomain || !orgDomain || inviteDomain !== orgDomain) {
+            throw new APIError("BAD_REQUEST", {
+              message: `Invitations are limited to @${orgDomain ?? "your workspace domain"}`,
+            });
+          }
+        },
+      },
     }),
   ],
   databaseHooks: {
     user: {
       create: {
         after: async (user) => {
-          await ensureOrgMembership(user);
+          if (!user.email) return;
+          await ensureOrgMembership({
+            id: user.id,
+            email: user.email,
+          });
         },
       },
     },

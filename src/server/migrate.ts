@@ -146,6 +146,7 @@ export async function runMigrations() {
       "slug"      TEXT        UNIQUE,
       "logo"      TEXT,
       "metadata"  TEXT,
+      "plan"      TEXT        NOT NULL DEFAULT 'trial',
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `;
@@ -301,6 +302,14 @@ export async function runMigrations() {
   `;
 
   await sql`
+    ALTER TABLE "organization" ADD COLUMN IF NOT EXISTS "plan" TEXT NOT NULL DEFAULT 'trial'
+  `;
+
+  await sql`
+    UPDATE "organization" SET "plan" = 'trial' WHERE "plan" IS NULL
+  `;
+
+  await sql`
     CREATE TABLE IF NOT EXISTS private.sso_audit_log (
       id         TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
       event      TEXT        NOT NULL,
@@ -327,6 +336,8 @@ export async function runMigrations() {
       org_id          TEXT        NOT NULL,
       recipient_count INTEGER     NOT NULL DEFAULT 0,
       feedback_count  INTEGER     NOT NULL,
+      period_start    TIMESTAMPTZ,
+      period_end      TIMESTAMPTZ,
       status          TEXT        NOT NULL DEFAULT 'sent',
       error           TEXT,
       sent_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -339,6 +350,29 @@ export async function runMigrations() {
   `;
 
   await sql`GRANT SELECT ON reporting.batch_deliveries TO reporter`;
+
+  // ── Org-scoped delivery roles ────────────────────────────────────────────
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS private.org_role_assignments (
+      id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id      TEXT        NOT NULL REFERENCES "organization"(id) ON DELETE CASCADE,
+      user_id     TEXT        NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+      role        TEXT        NOT NULL,
+      assigned_by TEXT        REFERENCES "user"(id) ON DELETE SET NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS org_role_assignments_org_user_role_idx
+      ON private.org_role_assignments (org_id, user_id, role)
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS org_role_assignments_org_role_idx
+      ON private.org_role_assignments (org_id, role)
+  `;
 
   // ── Remove legacy table (migrated to split schema above) ─────────────────
 
