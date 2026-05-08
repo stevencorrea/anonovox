@@ -3,10 +3,12 @@ import feedbackPage from "./pages/feedback.html";
 import signinPage from "./pages/signin.html";
 import acceptInvitationPage from "./pages/accept-invitation.html";
 import pricingPage from "./pages/pricing.html";
+import requestAccessPage from "./pages/request-access.html";
 import settingsPage from "./pages/settings.html";
 import dashboardPage from "./pages/dashboard.html";
 import adminPage from "./pages/admin.html";
 import { auth } from "./server/auth";
+import { sendRequestAccessEmail } from "./server/mailer";
 import { runMigrations } from "./server/migrate";
 import { analyzeText } from "./lib/analyze";
 import type { AnalysisRisk } from "./lib/analyze";
@@ -104,6 +106,29 @@ function readTrimmedString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function normalizeEmailDomain(value: string | null): string | null {
+  if (!value) return null;
+  const cleaned = value.trim().replace(/^@+/, "").toLowerCase();
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(cleaned) ? cleaned : null;
+}
+
+function normalizeWebsite(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  const candidate = /^[a-z]+:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const parsed = new URL(candidate);
+    if (!["http:", "https:"].includes(parsed.protocol)) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }
 
 function requireMaxLength(value: string, maxLength: number, fieldName: string): Response | null {
@@ -361,9 +386,62 @@ const server = Bun.serve({
     "/accept-invitation": acceptInvitationPage,
     "/feedback": feedbackPage,
     "/pricing": pricingPage,
+    "/request-access": requestAccessPage,
     "/settings": settingsPage,
     "/dashboard": dashboardPage,
     "/admin": adminPage,
+    "/api/request-access": {
+      POST: async (req) => {
+        const body = await readJsonBody<{
+          companyName?: string;
+          website?: string;
+          emailDomain?: string;
+          contactName?: string;
+          contactEmail?: string;
+        }>(req);
+        if (!body) return errorResponse(400, "Invalid JSON body");
+
+        const companyName = readTrimmedString(body.companyName);
+        if (!companyName) return errorResponse(400, "Company name required");
+        const companyNameError = requireMaxLength(companyName, 120, "Company name");
+        if (companyNameError) return companyNameError;
+
+        const rawWebsite = readTrimmedString(body.website);
+        if (!rawWebsite) return errorResponse(400, "Website required");
+        const website = normalizeWebsite(rawWebsite);
+        if (!website) return errorResponse(400, "Website must be a valid URL");
+
+        const emailDomainInput = readTrimmedString(body.emailDomain);
+        const emailDomain = emailDomainInput ? normalizeEmailDomain(emailDomainInput) : null;
+        if (emailDomainInput && !emailDomain) {
+          return errorResponse(400, "Email domain must look like example.com");
+        }
+
+        const contactName = readTrimmedString(body.contactName);
+        if (!contactName) return errorResponse(400, "Contact name required");
+        const contactNameError = requireMaxLength(contactName, 120, "Contact name");
+        if (contactNameError) return contactNameError;
+
+        const contactEmail = readTrimmedString(body.contactEmail);
+        if (!contactEmail) return errorResponse(400, "Contact email required");
+        if (!isValidEmail(contactEmail)) return errorResponse(400, "Contact email must be valid");
+
+        try {
+          await sendRequestAccessEmail({
+            companyName,
+            website,
+            emailDomain,
+            contactName,
+            contactEmail,
+          });
+        } catch (error) {
+          console.error("Request access email failed:", error);
+          return errorResponse(502, "Failed to send request access email");
+        }
+
+        return Response.json({ ok: true }, { status: 201 });
+      },
+    },
     "/api/org/me": {
       GET: async (req) => {
         const session = await requireVerifiedSession(req);

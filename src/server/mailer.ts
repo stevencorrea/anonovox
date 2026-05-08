@@ -253,3 +253,46 @@ export async function sendInvitationEmail(
     wrapEmail(body),
   );
 }
+
+export interface RequestAccessEmailParams {
+  companyName: string;
+  website: string;
+  emailDomain: string | null;
+  contactName: string;
+  contactEmail: string;
+}
+
+export async function sendRequestAccessEmail(params: RequestAccessEmailParams): Promise<void> {
+  const { companyName, website, emailDomain, contactName, contactEmail } = params;
+
+  const body = `
+    <p style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#8b8480;margin:0 0 6px;">Request access</p>
+    <h1 style="font-size:22px;font-weight:600;color:#1a1410;margin:0 0 20px;letter-spacing:-0.02em;">A new organization requested access.</h1>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#5a5450;width:170px;"><strong style="color:#1a1410;">Company</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#1a1410;">${esc(companyName)}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#5a5450;"><strong style="color:#1a1410;">Website</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#1a1410;"><a href="${esc(website)}" style="color:#2c3e7a;text-decoration:none;">${esc(website)}</a></td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#5a5450;"><strong style="color:#1a1410;">Email domain</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#1a1410;">${esc(emailDomain ?? "Use website domain")}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#5a5450;"><strong style="color:#1a1410;">Contact name</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#1a1410;">${esc(contactName)}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#5a5450;"><strong style="color:#1a1410;">Contact email</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid #e6e0d8;font-size:14px;color:#1a1410;"><a href="mailto:${esc(contactEmail)}" style="color:#2c3e7a;text-decoration:none;">${esc(contactEmail)}</a></td>
+      </tr>
+    </table>
+    <p style="font-size:13px;color:#8b8480;line-height:1.7;margin:0;">
+      Reply to <a href="mailto:${esc(contactEmail)}" style="color:#2c3e7a;text-decoration:none;">${esc(contactEmail)}</a> to continue the conversation.
+    </p>`;
+
+  await send("steven@recursesystems.com", `Request access — ${companyName}`, wrapEmail(body));
+}

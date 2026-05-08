@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request access — anonovox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prata:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/design-system.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(223, 233, 255, 0.8), transparent 34%),
+        linear-gradient(180deg, #fbf8f3 0%, #f4eee6 100%);
+      color: var(--text-primary);
+    }
+
+    .shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 5rem;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .wordmark {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .wordmark b { color: var(--accent); }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, 460px);
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .intro {
+      padding: 3rem 1rem 0 0;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2.4rem, 6vw, 4.8rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      margin: 0 0 1.25rem;
+      max-width: 10ch;
+    }
+
+    .intro p {
+      max-width: 56ch;
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      margin: 0 0 1.75rem;
+    }
+
+    .notes {
+      display: grid;
+      gap: 0.85rem;
+      max-width: 35rem;
+    }
+
+    .note {
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(44, 62, 122, 0.12);
+      border-radius: 1rem;
+      padding: 0.95rem 1rem;
+      box-shadow: 0 14px 28px rgba(26, 20, 16, 0.05);
+      backdrop-filter: blur(12px);
+    }
+
+    .note-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+    }
+
+    .note-body {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(44, 62, 122, 0.12);
+      border-radius: 1.4rem;
+      padding: 2rem;
+      box-shadow: 0 22px 44px rgba(26, 20, 16, 0.08);
+      backdrop-filter: blur(16px);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(44, 62, 122, 0.08) 0%, rgba(44, 62, 122, 0.02) 100%);
+      pointer-events: none;
+    }
+
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-heading {
+      margin-bottom: 1.5rem;
+    }
+
+    .card-heading h2 {
+      margin: 0 0 0.5rem;
+      font-family: var(--ff-display);
+      font-size: 2rem;
+      letter-spacing: -0.03em;
+    }
+
+    .card-heading p {
+      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      font-size: 0.94rem;
+    }
+
+    .stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.95rem;
+    }
+
+    label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .hint {
+      margin-top: -0.1rem;
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.95rem;
+      padding: 0.9rem 1rem;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+    }
+
+    input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(44, 62, 122, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .message {
+      display: none;
+      border-radius: 0.85rem;
+      padding: 0.9rem 1rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .message.success {
+      background: rgba(45, 125, 70, 0.1);
+      color: #1f5d35;
+      border: 1px solid rgba(45, 125, 70, 0.18);
+    }
+
+    .message.error {
+      background: rgba(192, 57, 43, 0.08);
+      color: #b03a2e;
+      border: 1px solid rgba(192, 57, 43, 0.15);
+    }
+
+    .submit-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-top: 0.35rem;
+    }
+
+    .submit-meta {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      line-height: 1.6;
+      max-width: 22ch;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.95rem 1.45rem;
+      background: linear-gradient(135deg, var(--accent) 0%, #3952a1 100%);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 18px 30px rgba(44, 62, 122, 0.24);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 22px 34px rgba(44, 62, 122, 0.28);
+    }
+
+    button:disabled {
+      opacity: 0.68;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    @media (max-width: 940px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .intro {
+        padding: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        padding: 1.25rem 1rem 3rem;
+      }
+
+      .card {
+        padding: 1.35rem;
+        border-radius: 1.1rem;
+      }
+
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+
+      .submit-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="nav">
+      <a href="/" class="wordmark">anono<b>vox</b></a>
+      <a href="/pricing" class="nav-link">Back to pricing</a>
+    </div>
+
+    <div class="layout">
+      <section class="intro">
+        <div class="eyebrow">Early access</div>
+        <h1>Tell us who should get the invite.</h1>
+        <p>
+          Share a few details about your organization and the right contact. We'll use this to follow up with setup steps, timing, and anything we need to get your workspace ready.
+        </p>
+        <div class="notes">
+          <div class="note">
+            <div class="note-title">Fast to complete</div>
+            <div class="note-body">Just the basics: company, website, and who we should contact.</div>
+          </div>
+          <div class="note">
+            <div class="note-title">Optional domain override</div>
+            <div class="note-body">If your team signs in with a domain different from your website, add it so we route your workspace correctly.</div>
+          </div>
+          <div class="note">
+            <div class="note-title">Direct follow-up</div>
+            <div class="note-body">Your request goes straight to the anonovox team through the existing email delivery setup.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-inner">
+          <div class="card-heading">
+            <h2>Request access</h2>
+            <p>We’ll reach out to the contact below with next steps.</p>
+          </div>
+
+          <form id="request-access-form" class="stack">
+            <div class="field">
+              <label for="company-name">Company name</label>
+              <input id="company-name" name="companyName" type="text" autocomplete="organization" placeholder="Recurse Systems" required />
+            </div>
+
+            <div class="field">
+              <label for="website">Company website</label>
+              <input id="website" name="website" type="text" inputmode="url" placeholder="example.com" required />
+            </div>
+
+            <div class="field">
+              <label for="email-domain">Email domain</label>
+              <input id="email-domain" name="emailDomain" type="text" inputmode="email" placeholder="Optional if different from your website" />
+              <div class="hint">Optional. Example: <code>team.example.org</code></div>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="contact-name">Contact name</label>
+                <input id="contact-name" name="contactName" type="text" autocomplete="name" placeholder="Steven" required />
+              </div>
+
+              <div class="field">
+                <label for="contact-email">Contact email</label>
+                <input id="contact-email" name="contactEmail" type="email" autocomplete="email" placeholder="steven@example.com" required />
+              </div>
+            </div>
+
+            <div id="request-access-message" class="message" aria-live="polite"></div>
+
+            <div class="submit-row">
+              <div class="submit-meta">We’ll send this straight to the team and follow up by email.</div>
+              <button id="request-access-submit" type="submit">Request access</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="../client/theme-toggle.js"></script>
+  <script type="module" src="./request-access.ts"></script>
+</body>
+</html>
