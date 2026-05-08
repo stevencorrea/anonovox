@@ -14,6 +14,11 @@ async function send(to: string, subject: string, html: string): Promise<void> {
     console.log(`[mailer] RESEND_API_KEY not set — skipping email to ${to}: ${subject}`);
     return;
   }
+  console.log("[mailer] Sending email via Resend", {
+    to,
+    subject,
+    from: getFrom(),
+  });
   const res = await fetch(RESEND_API, {
     method: "POST",
     headers: {
@@ -26,6 +31,7 @@ async function send(to: string, subject: string, html: string): Promise<void> {
     const text = await res.text();
     throw new Error(`Resend ${res.status}: ${text}`);
   }
+  console.log("[mailer] Resend accepted email", { to, subject });
 }
 
 // ── HTML helpers ──────────────────────────────────────────────────────────────

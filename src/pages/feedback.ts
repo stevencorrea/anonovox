@@ -33,13 +33,26 @@ type StructuredPollResponse = {
     document.getElementById("resend-verify")!.addEventListener("click", async (e) => {
       e.preventDefault();
       const link = e.currentTarget as HTMLAnchorElement;
+      const originalText = link.textContent ?? "Resend verification email";
       link.textContent = "Sending…";
       link.style.pointerEvents = "none";
-      await authClient.sendVerificationEmail({
-        email: user.email,
-        callbackURL: "/feedback",
-      });
-      link.textContent = "Sent! Check your inbox.";
+      try {
+        const { error } = await authClient.sendVerificationEmail({
+          email: user.email,
+          callbackURL: "/feedback",
+        });
+        if (error) {
+          showMessage(error.message ?? "Couldn't send verification email. Please try again.", "error");
+          link.textContent = originalText;
+          link.style.pointerEvents = "";
+          return;
+        }
+        link.textContent = "Sent! Check your inbox.";
+      } catch {
+        showMessage("Couldn't send verification email. Please try again.", "error");
+        link.textContent = originalText;
+        link.style.pointerEvents = "";
+      }
     });
   } else {
     void loadStructuredPoll();
