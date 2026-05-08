@@ -135,6 +135,15 @@
       align-items: center;
       gap: 1.25rem;
       flex-wrap: wrap;
+      position: relative;
+      z-index: 4;
+    }
+
+    .hero-actions a,
+    .cta-actions a {
+      position: relative;
+      z-index: 4;
+      touch-action: manipulation;
     }
 
     .stats-bar {
@@ -658,6 +667,7 @@
 
   <script src="../client/theme-toggle.js"></script>
   <script type="module" src="../client/home-nav.ts"></script>
+  <script type="module" src="../client/request-access-link.ts"></script>
 
 </body>
 </html>

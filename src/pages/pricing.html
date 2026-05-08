@@ -254,6 +254,9 @@
       width: 100%;
       text-align: center;
       margin-bottom: 2rem;
+      position: relative;
+      z-index: 3;
+      touch-action: manipulation;
     }
 
     .feature-list {
@@ -998,6 +1001,7 @@
 
   <script src="../client/theme-toggle.js"></script>
   <script type="module" src="../client/home-nav.ts"></script>
+  <script type="module" src="../client/request-access-link.ts"></script>
   <script>
     const toggle = document.getElementById('billing-toggle');
     const proPrice = document.getElementById('pro-price');

@@ -95,11 +95,12 @@
     }
 
     .note {
-      background: rgba(255, 255, 255, 0.66);
-      border: 1px solid rgba(44, 62, 122, 0.12);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.44) 0%, rgba(245, 237, 230, 0.78) 100%);
+      border: 1px solid var(--border-light);
       border-radius: 1rem;
-      padding: 0.95rem 1rem;
-      box-shadow: 0 14px 28px rgba(26, 20, 16, 0.05);
+      padding: 1rem 1.05rem;
+      box-shadow: 0 10px 24px rgba(26, 20, 16, 0.04);
       backdrop-filter: blur(12px);
     }
 
@@ -108,7 +109,7 @@
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--text-primary);
+      color: var(--accent);
       margin-bottom: 0.35rem;
     }
 
@@ -116,6 +117,30 @@
       font-size: 0.9rem;
       line-height: 1.6;
       color: var(--text-secondary);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .note {
+        background:
+          linear-gradient(180deg, rgba(36, 44, 56, 0.82) 0%, rgba(26, 31, 39, 0.9) 100%);
+        border-color: rgba(107, 142, 228, 0.1);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      .note-title {
+        color: var(--accent-light);
+      }
+    }
+
+    html.dark-mode .note {
+      background:
+        linear-gradient(180deg, rgba(36, 44, 56, 0.82) 0%, rgba(26, 31, 39, 0.9) 100%);
+      border-color: rgba(107, 142, 228, 0.1);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    html.dark-mode .note-title {
+      color: var(--accent-light);
     }
 
     .card {
@@ -326,16 +351,16 @@
         </p>
         <div class="notes">
           <div class="note">
-            <div class="note-title">Fast to complete</div>
-            <div class="note-body">Just the basics: company, website, and who we should contact.</div>
+            <div class="note-title">Anonymous by default</div>
+            <div class="note-body">Collect candid feedback without exposing identities in the reports leadership sees.</div>
           </div>
           <div class="note">
-            <div class="note-title">Optional domain override</div>
-            <div class="note-body">If your team signs in with a domain different from your website, add it so we route your workspace correctly.</div>
+            <div class="note-title">Domain-aware routing</div>
+            <div class="note-body">Map the right workspace to the right team, even when your sign-in domain differs from your public site.</div>
           </div>
           <div class="note">
-            <div class="note-title">Direct follow-up</div>
-            <div class="note-body">Your request goes straight to the anonovox team through the existing email delivery setup.</div>
+            <div class="note-title">Leadership-ready signal</div>
+            <div class="note-body">Turn raw submissions into themes, digest-ready summaries, and visible follow-through inside the platform.</div>
           </div>
         </div>
       </section>
