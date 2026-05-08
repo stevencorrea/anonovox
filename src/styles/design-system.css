@@ -405,6 +405,13 @@ body.dark-mode nav {
   gap: 2rem;
 }
 
+#nav-auth,
+#nav-auth a {
+  position: relative;
+  z-index: 60;
+  touch-action: manipulation;
+}
+
 .nav-link {
   font-size: 0.85rem;
   letter-spacing: 0.1em;

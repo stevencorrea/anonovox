@@ -1,4 +1,7 @@
-const REQUEST_ACCESS_PATH = "/request-access";
+const INTERCEPTED_PATHS = new Set([
+  "/request-access",
+  "/signin",
+]);
 
 function isPlainPrimaryClick(event: MouseEvent): boolean {
   return event.button === 0
@@ -8,14 +11,17 @@ function isPlainPrimaryClick(event: MouseEvent): boolean {
     && !event.altKey;
 }
 
-for (const link of document.querySelectorAll<HTMLAnchorElement>(`a[href="${REQUEST_ACCESS_PATH}"]`)) {
+for (const link of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+  const href = link.getAttribute("href");
+  if (!href || !INTERCEPTED_PATHS.has(href)) continue;
+
   link.addEventListener("click", (event) => {
     if (!isPlainPrimaryClick(event)) return;
 
     event.preventDefault();
 
-    if (window.location.pathname !== REQUEST_ACCESS_PATH) {
-      window.location.assign(REQUEST_ACCESS_PATH);
+    if (window.location.pathname !== href) {
+      window.location.assign(href);
     }
   });
 }
