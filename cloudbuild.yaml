@@ -13,27 +13,25 @@ steps:
     args:
       - build
       - -t
-      - ${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA
+      - us-west1-docker.pkg.dev/anonovox/anonovox/anonovox:$COMMIT_SHA
       - .
 
   - name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA
+      - us-west1-docker.pkg.dev/anonovox/anonovox/anonovox:$COMMIT_SHA
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args:
       - -ceu
       - |
-        IMAGE="${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA"
-
-        gcloud run deploy "${_SERVICE}" \
-          --image="${IMAGE}" \
-          --region="${_REGION}" \
+        gcloud run deploy anonovox \
+          --image="us-west1-docker.pkg.dev/anonovox/anonovox/anonovox:$COMMIT_SHA" \
+          --region=us-west1 \
           --platform=managed \
           --allow-unauthenticated \
-          --service-account="${_RUNTIME_SERVICE_ACCOUNT}" \
+          --service-account=anonovox-runtime@anonovox.iam.gserviceaccount.com \
           --min-instances=1 \
           --max-instances=4 \
           --memory=512Mi \
@@ -58,4 +56,4 @@ steps:
             SCHEDULER_SECRET=SCHEDULER_SECRET:latest"
 
 images:
-  - ${_AR_REPO_BASE}/${_IMAGE_NAME}:$COMMIT_SHA
+  - us-west1-docker.pkg.dev/anonovox/anonovox/anonovox:$COMMIT_SHA
