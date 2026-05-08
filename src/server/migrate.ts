@@ -176,12 +176,22 @@ export async function runMigrations() {
       "role"           TEXT,
       "status"         TEXT        NOT NULL DEFAULT 'pending',
       "expiresAt"      TIMESTAMPTZ NOT NULL,
+      "createdAt"      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt"      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "inviterId"      TEXT        NOT NULL REFERENCES "user"("id") ON DELETE CASCADE
     )
   `;
 
   await sql`
     CREATE INDEX IF NOT EXISTS "invitation_org_idx" ON "invitation" ("organizationId")
+  `;
+
+  await sql`
+    ALTER TABLE "invitation" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `;
+
+  await sql`
+    ALTER TABLE "invitation" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   `;
 
   await sql`
