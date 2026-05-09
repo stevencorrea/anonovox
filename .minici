@@ -1,0 +1,12 @@
+# miniCI config for anonovox
+# runs on every commit via pre-commit hook
+
+# type-check all TypeScript
+bun run typecheck
+
+# run test suite
+bun test
+
+# run security SAST/DAST like qualys or snyk
+
+# run linter... etc 
