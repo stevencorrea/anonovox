@@ -1,6 +1,5 @@
 # anonovox
 
-
 Anonymous organizational feedback for teams that want three things in one place:
 - freeform feedback collection
 - structured top-down polls
